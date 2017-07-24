@@ -30,5 +30,7 @@
 	<classpathentry kind="lib" path="/home/icaro/Downloads/httpcomponents-client-4.5.3/lib/httpclient-4.5.3.jar"/>
 	<classpathentry kind="lib" path="/home/icaro/Downloads/httpcomponents-client-4.5.3/lib/httpcore-4.4.6.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.web.container"/>
+	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.module.container"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
