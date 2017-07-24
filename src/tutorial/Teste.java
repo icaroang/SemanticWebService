@@ -43,8 +43,8 @@ public class Teste {
 	public static String SERVER_URL = "http://localhost:10035";
 	public static String CATALOG_ID = "java-catalog";
 	public static String REPOSITORY_ID = "teste";
-	public static String USERNAME = "test";
-	public static String PASSWORD = "xyzzy";
+	public static String USERNAME = "icaroang";
+	public static String PASSWORD = "icaro123";
 	public static String TEMPORARY_DIRECTORY = "";
 
 	static final String FOAF_NS = "http://xmlns.com/foaf/0.1/";

@@ -27,7 +27,8 @@
 	<classpathentry kind="lib" path="lib/jena/xercesImpl-2.10.0.jar"/>
 	<classpathentry kind="lib" path="lib/jena/xml-apis-1.4.01.jar"/>
 	<classpathentry kind="lib" path="lib/commons-io-2.4.jar"/>
-	<classpathentry kind="lib" path="/home/franz/Downloads/httpclient-4.5.3.jar"/>
-	<classpathentry kind="lib" path="/home/franz/Downloads/httpcore-4.4.6.jar"/>
+	<classpathentry kind="lib" path="/home/icaro/Downloads/httpcomponents-client-4.5.3/lib/httpclient-4.5.3.jar"/>
+	<classpathentry kind="lib" path="/home/icaro/Downloads/httpcomponents-client-4.5.3/lib/httpcore-4.4.6.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
