@@ -1,4 +1,4 @@
-package tutorial;
+package controller;
 
 public class TesteMain {
 
