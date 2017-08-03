@@ -48,14 +48,14 @@ import com.hp.hpl.jena.vocabulary.RDF;
 public class PersonGraph {
 	public static String SERVER_URL = "http://localhost:10035";
 	public static String CATALOG_ID = "java-catalog";
-	public static String REPOSITORY_ID = "teste";
+	public static String REPOSITORY_ID = "data";
 	public static String USERNAME = "icaroang";
 	public static String PASSWORD = "icaro123";
 	public static String TEMPORARY_DIRECTORY = "";
 	private static AGVirtualRepository combinedRepo;
 	private static AGRepositoryConnection conn;
 	
-	public static AGGraph ConnectSingleRepository() throws Exception {			
+	public static AGGraph ConnectDataRepository() throws Exception {			
 		
 		AGServer server = new AGServer(SERVER_URL, USERNAME, PASSWORD);
 		AGCatalog catalog = server.getCatalog(CATALOG_ID);
@@ -77,7 +77,7 @@ public class PersonGraph {
 	private static void ConnectCombinedRepository() throws Exception {			
 		println("\nConnectCombinedRepository.");
 		AGServer server = new AGServer(SERVER_URL, USERNAME, PASSWORD);
-		AGRepository ontologiesRespository = server.getCatalog(CATALOG_ID).openRepository("teste2");
+		AGRepository ontologiesRespository = server.getCatalog(CATALOG_ID).openRepository("ontologies");
 		AGRepository dataRespository = server.getCatalog(CATALOG_ID).openRepository("teste");
 
 	    combinedRepo = server.federate(ontologiesRespository, dataRespository);
@@ -89,9 +89,9 @@ public class PersonGraph {
 	public static String getAll(String format) throws Exception{
 	 	ConnectCombinedRepository();
 		Model PeopleModel = ModelFactory.createDefaultModel();
-		boolean exist = false;				
+		boolean exist = false;
 		String queryString = "Select ?s ?p ?o "						
-				+ " WHERE { ?s ?p ?o.filter regex(str(?s), \"people\", \"i\")}";
+				+ " WHERE { ?s ?p ?o }";
 		
 		closeBeforeExit(conn);
 
@@ -99,32 +99,15 @@ public class PersonGraph {
 	
 		TupleQuery tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString);
 		tupleQuery.setIncludeInferred(true);
-		TupleQueryResult result = tupleQuery.evaluate();
+		TupleQueryResult results = tupleQuery.evaluate();
 		   
-		while (result.hasNext()) {   	
+		while (results.hasNext()) {   	
 			exist = true;
-	       	BindingSet solution= result.next();	        	
-	       	Resource r = PeopleModel.createResource(solution.getValue("s").toString());
-	       	Property p = PeopleModel.createProperty(solution.getValue("p").toString());
-	       	String o = solution.getValue("o").toString();
+	       	BindingSet result= results.next();	        	
+	       	Resource r = PeopleModel.createResource(result.getValue("s").toString());
+	       	Property p = PeopleModel.createProperty(result.getValue("p").toString());
+	       	String o = result.getValue("o").toString();
 	       	PeopleModel.add(r,p,o);
-
-	       	if(o.contains("_:")){
-	       		AnonId id = new AnonId(o);
-	       		queryString =  "Select ?p ?o "						
-	   					+ " WHERE { "+o+" ?p ?o.}";
-	       		TupleQuery anonQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString);
-				   anonQuery.setIncludeInferred(true);
-				   TupleQueryResult anonresult = anonQuery.evaluate();
-				  while (anonresult.hasNext()) {			        	
-			        	BindingSet triples= anonresult.next();			        	
-			        	Resource anonResource = PeopleModel.createResource(id);
-			        	Property property = PeopleModel.createProperty(triples.getValue("p").toString());
-			        	String object = triples.getValue("o").toString();
-				        PeopleModel.add(anonResource, property, object);
-					  }
-		       		
-		       	}
 	   	
 	   }
 		conn.close();

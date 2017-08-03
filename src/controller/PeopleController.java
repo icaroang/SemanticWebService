@@ -15,14 +15,8 @@ import model.PersonGraph;
 @Path("/people")
 public class PeopleController {
 	
-	  // This method is called if TEXT_PLAIN is request
-	  @GET
-	  @Produces(MediaType.TEXT_PLAIN)
-	  public String sayPlainTextHello() {
-	    return "Hello Jersey";
-	  }
 
-	  // This method is called if XML is request
+	// This method is called if XML is request
 	@GET	
 	@Produces({"application/rdf+xml", "text/turtle"})
 	public Response getAll(@HeaderParam("Accept") String accept) throws Exception{		
@@ -36,11 +30,11 @@ public class PeopleController {
 			return Response.ok(file).header("Content-Disposition",  "attachment; filename=\"all"+"."+format+"\" ").build();
 	  }
 
-	  // This method is called if HTML is request
-	  @GET
-	  @Produces(MediaType.TEXT_HTML)
-	  public String sayHtmlHello() {
-	    return "<html> " + "<title>" + "Hello Jersey" + "</title>"
-	        + "<body><h1>" + "Hello Jersey" + "</body></h1>" + "</html> ";
-	  }
+	// This method is called if HTML is request
+	@GET
+	@Produces(MediaType.TEXT_HTML)
+	public String sayHtmlHello() {
+	  return "<html> " + "<title>" + "Hello Jersey" + "</title>"
+	      + "<body><h1>" + "Hello Jersey" + "</body></h1>" + "</html> ";
+	}
 }
