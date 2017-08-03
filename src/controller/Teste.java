@@ -175,66 +175,66 @@ public class Teste {
 		}
 	}
 
-	public static void example4() throws Exception {
-		AGRepositoryConnection conn = AGServer.createRepositoryConnection(REPOSITORY_ID, CATALOG_ID, SERVER_URL,
-				USERNAME, PASSWORD);
-		closeBeforeExit(conn);
-
-		conn.begin();
-
-		String updateString = "DELETE DATA { <http://example.org/people/alice>  <http://example.org/ontology/name>  \"Alice\" } ; \n"
-				+ "\n"
-				+ "INSERT DATA { <http://example.org/people/alice>  <http://example.org/ontology/name>  \"Ana\" }";
-		println("\nPerforming SPARQL Update:\n" + updateString);
-		conn.prepareUpdate(QueryLanguage.SPARQL, updateString).execute();
-		String queryString = "ASK { <http://example.org/people/alice>  <http://example.org/ontology/name>  \"Ana\" }";
-		println("\nPerforming query:\n" + queryString);
-		println("Result: " + conn.prepareBooleanQuery(QueryLanguage.SPARQL, queryString).evaluate());
-		conn.commit();
-	}
-
-	public static void example5() throws Exception {
-		AGRepositoryConnection conn = AGServer.createRepositoryConnection(REPOSITORY_ID, CATALOG_ID, SERVER_URL,
-				USERNAME, PASSWORD);
-		closeBeforeExit(conn);
-		AGGraphMaker maker = new AGGraphMaker(conn);
-		AGGraph graph = maker.getGraph();
-		AGModel model = new AGModel(graph);
-
-		conn.begin();
-
-		String insertString = "INSERT DATA { <http://example.org/people/alice>  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  foaf:Person }";
-		println("\nPerforming SPARQL Insert:\n" + insertString);
-		conn.prepareUpdate(QueryLanguage.SPARQL, insertString).execute();
-		String queryString = "ASK { <http://example.org/people/alice>  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  foaf:Person }";
-		println("\nPerforming query:\n" + queryString);
-		println("Result: " + conn.prepareBooleanQuery(QueryLanguage.SPARQL, queryString).evaluate());
-
-		println("");
-
-		queryString = "ASK { <http://example.org/people/alice>  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  foaf:Agent }";
-		println("\nPerforming query:\n" + queryString);
-		println("Result: " + conn.prepareBooleanQuery(QueryLanguage.SPARQL, queryString).evaluate());
-
-		println("");
-
-		queryString = "ASK { <http://example.org/people/alice>  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  foaf:Agent }";
-		AGBooleanQuery sparql = new AGBooleanQuery(conn, QueryLanguage.SPARQL, queryString, "");
-
-		sparql.setEntailmentRegime(com.franz.agraph.repository.AGQuery.RESTRICTION);
-		sparql.setIncludeInferred(true);
-
-		// AGQueryExecution qe = AGQueryExecutionFactory.create(sparql, model);
-		println("\nPerforming query:\n" + queryString);
-		println("Result: " + sparql.evaluate());
-		// println("Result: " + qe.execAsk());
-		// Resource alice =
-		// model.createResource("http://example.org/people/alice");
-		// Property type =
-		// model.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-		// printRows(infmodel.listStatements(alice, type, (RDFNode)null));
-		conn.commit();
-	}
+//	public static void example4() throws Exception {
+//		AGRepositoryConnection conn = AGServer.createRepositoryConnection(REPOSITORY_ID, CATALOG_ID, SERVER_URL,
+//				USERNAME, PASSWORD);
+//		closeBeforeExit(conn);
+//
+//		conn.begin();
+//
+//		String updateString = "DELETE DATA { <http://example.org/people/alice>  <http://example.org/ontology/name>  \"Alice\" } ; \n"
+//				+ "\n"
+//				+ "INSERT DATA { <http://example.org/people/alice>  <http://example.org/ontology/name>  \"Ana\" }";
+//		println("\nPerforming SPARQL Update:\n" + updateString);
+//		conn.prepareUpdate(QueryLanguage.SPARQL, updateString).execute();
+//		String queryString = "ASK { <http://example.org/people/alice>  <http://example.org/ontology/name>  \"Ana\" }";
+//		println("\nPerforming query:\n" + queryString);
+//		println("Result: " + conn.prepareBooleanQuery(QueryLanguage.SPARQL, queryString).evaluate());
+//		conn.commit();
+//	}
+//
+//	public static void example5() throws Exception {
+//		AGRepositoryConnection conn = AGServer.createRepositoryConnection(REPOSITORY_ID, CATALOG_ID, SERVER_URL,
+//				USERNAME, PASSWORD);
+//		closeBeforeExit(conn);
+//		AGGraphMaker maker = new AGGraphMaker(conn);
+//		AGGraph graph = maker.getGraph();
+//		AGModel model = new AGModel(graph);
+//
+//		conn.begin();
+//
+//		String insertString = "INSERT DATA { <http://example.org/people/alice>  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  foaf:Person }";
+//		println("\nPerforming SPARQL Insert:\n" + insertString);
+//		conn.prepareUpdate(QueryLanguage.SPARQL, insertString).execute();
+//		String queryString = "ASK { <http://example.org/people/alice>  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  foaf:Person }";
+//		println("\nPerforming query:\n" + queryString);
+//		println("Result: " + conn.prepareBooleanQuery(QueryLanguage.SPARQL, queryString).evaluate());
+//
+//		println("");
+//
+//		queryString = "ASK { <http://example.org/people/alice>  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  foaf:Agent }";
+//		println("\nPerforming query:\n" + queryString);
+//		println("Result: " + conn.prepareBooleanQuery(QueryLanguage.SPARQL, queryString).evaluate());
+//
+//		println("");
+//
+//		queryString = "ASK { <http://example.org/people/alice>  <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  foaf:Agent }";
+//		AGBooleanQuery sparql = new AGBooleanQuery(conn, QueryLanguage.SPARQL, queryString, "");
+//
+//		sparql.setEntailmentRegime(com.franz.agraph.repository.AGQuery.RESTRICTION);
+//		sparql.setIncludeInferred(true);
+//
+//		// AGQueryExecution qe = AGQueryExecutionFactory.create(sparql, model);
+//		println("\nPerforming query:\n" + queryString);
+//		println("Result: " + sparql.evaluate());
+//		// println("Result: " + qe.execAsk());
+//		// Resource alice =
+//		// model.createResource("http://example.org/people/alice");
+//		// Property type =
+//		// model.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+//		// printRows(infmodel.listStatements(alice, type, (RDFNode)null));
+//		conn.commit();
+//	}
 
 	public static void example6() throws Exception {
 		String serverURL = SERVER_URL + "/catalogs/" + CATALOG_ID + "/repositories/" + REPOSITORY_ID + "?infer=true";
