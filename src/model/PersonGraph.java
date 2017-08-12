@@ -169,14 +169,13 @@ public class PersonGraph {
 	public static String createPerson(JsonObject json) throws Exception {
 		AGGraph graph = ConnectDataRepository();						
 		AGModel model = new AGModel(graph);
-		model.setNsPrefix("rdfs", "<http://www.w3.org/2000/01/rdf-schema#>");
 		Iterator subjects= model.listSubjects();
 		String nickname = "";
 		Iterator iterator1 = json.entrySet().iterator();
 		while(iterator1.hasNext())
 		{
 			Entry<String, JsonValue> entry= (Entry<String, JsonValue>)iterator1.next();
-			if (entry.getKey().toString().equals("foaf:nick")){
+			if (entry.getKey().toString().equals("http://xmlns.com/foaf/0.1/nick")){
 				String nick = entry.getValue().toString();
 				nickname = nick.substring(1,nick.length()-1);
 			}

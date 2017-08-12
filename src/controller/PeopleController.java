@@ -61,6 +61,9 @@ public class PeopleController {
 	public Response postPerson(JsonObject json){			
 		try {					
 			String uri = PersonGraph.createPerson(expandJson(json));			
+			if(uri == null) {
+				return Response.status(406).entity("Não foi possível cadastrar uma pessoa com o nickname solicitado.").build();
+		    }
 			return Response.status(201).entity(uri).build();
 		}	
 		 catch (Exception e) {
@@ -78,11 +81,22 @@ public class PeopleController {
 			Iterator iterator = obj.entrySet().iterator();
 			while(iterator.hasNext()){
 				Entry<String, JsonValue> entry = (Entry<String, JsonValue>)iterator.next();
-				jsonOB.add(entry.getKey(), entry.getValue().toString().substring(1, entry.getValue().toString().length()-1));
+				String prefix = setPrefix(entry.getKey().toString());
+				jsonOB.add(prefix + entry.getKey(), entry.getValue().toString().substring(1, entry.getValue().toString().length()-1));
 			}		
 		
 		
 		return jsonOB.build();
+	}
+	
+	public String setPrefix(String property) {
+		String prefix = "";
+		if (property.equals("label") || property.equals("comment") ) {
+			prefix = "http://www.w3.org/2000/01/rdf-schema#";
+		}else{
+			prefix = "http://xmlns.com/foaf/0.1/";
+		}
+		return prefix;
 	}
 		
 }
