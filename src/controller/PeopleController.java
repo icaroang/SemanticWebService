@@ -9,10 +9,13 @@ import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -32,7 +35,21 @@ import model.PersonGraph;
 
 @Path("/people")
 public class PeopleController {
+	String uriBase = "http://localhost:8080/SemanticWebService/people/";
 	
+	@GET
+	@Path("{nick}/")
+	@Produces({"application/rdf+xml", "text/turtle"})
+	public Response getPerson(@PathParam("nick") String nick, @HeaderParam("Accept") String accept) throws Exception{
+		String format = "rdf";
+		if(accept != null && accept.equals("text/turtle"))
+			format = "ttl";
+		String file = PersonGraph.getPerson(uriBase+ nick, format);
+		if(file.equals("False"))
+			return Response.status(404).build();
+		else		
+			return Response.ok(file).header("Content-Disposition",  "attachment; filename=\""+nick+"."+format+"\" ").build();
+	}
 
 	// This method is called if XML is request
 	@GET	
@@ -72,6 +89,38 @@ public class PeopleController {
 		}			
 		
 	}
+	
+	@PUT
+    @Consumes("application/json")	
+	@Path("{nick}/")
+    public Response putPerson(@PathParam("nick") String nick, JsonObject json)  {
+		try {			
+			PersonGraph.updatePersonGraph(uriBase + nick , expandJson(json));
+			return Response.status(200).build();
+		}	
+		 catch (Exception e) {
+			e.printStackTrace();
+			return Response.status(304).build();
+		}		
+	}
+	
+
+	@DELETE
+	@Path("{nick}/")	
+	public Response deletePerson(@PathParam("nick")String nick) {		
+		boolean exist;
+		try {
+			exist = PersonGraph.deletePersonGraph(uriBase + nick);
+			if(exist)
+				return Response.status(200).build();
+			else
+				return Response.status(404).build();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return Response.status(304).build();
+		}			
+	}
+	
 	
 	
 	private JsonObject expandJson(JsonObject obj){
