@@ -65,7 +65,7 @@ public class PersonGraph {
 	private static AGRepositoryConnection conn;
 	private static AGGraphMaker maker;
 	private static AGRepository repository;
-	private static String nickname = "";
+	private static String id = "";
 	
 	public static AGGraph ConnectDataRepository() throws Exception {			
 		
@@ -193,12 +193,12 @@ public class PersonGraph {
 		Iterator subjects = model.listSubjects();
 		Iterator json_values = json.entrySet().iterator();
 		
-		nickname = newNickname(json_values);
-		if (existNickname(subjects, nickname)) {
+		id = newId(json_values);
+		if (existId(subjects, id) || (id.equals(""))) {
 			return null;
 		}
 		
-		Resource resource =	model.createResource("http://localhost:8080/SemanticWebService/people/" + nickname);
+		Resource resource =	model.createResource("http://localhost:8080/SemanticWebService/people/" + id);
 		Property type = model.getProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
 		Resource resourceLocation =	model.createResource("http://xmlns.com/foaf/0.1/Person" );
 		model.add(resource, type, resourceLocation);
@@ -207,7 +207,7 @@ public class PersonGraph {
 			Entry<String, JsonValue> entry= (Entry<String, JsonValue>)iterator.next();
 			String value = entry.getValue().toString();
 			String key = entry.getKey().toString();
-			if(!value.equals("")) {
+			if(!value.equals("") && !key.equals("id")) {
 				if (key.equals("http://xmlns.com/foaf/0.1/knows")) {
 					Resource peopleLocation = model.createResource(value.substring(1,value.length()-1));
 					model.add(resource, model.getProperty(entry.getKey()), peopleLocation);
@@ -226,14 +226,21 @@ public class PersonGraph {
 		AGModel model = new AGModel(graph);			
 		Model addModel = ModelFactory.createDefaultModel();						
 		Resource resource =	addModel.createResource(uri);
-		removeTriples(model, uri, "http://xmlns.com/foaf/0.1/nick");
+		removeTriples(model, uri, ""); // o primeiro argumento é o model, o segundo argumento são todos os sujeitos que serão removidos, e o terceiro argumento é qual predicado não será excluído
 							
 		Iterator iterator = json.entrySet().iterator();
 		while (iterator.hasNext()) {
 			Entry<String, JsonValue> entry= (Entry<String, JsonValue>)iterator.next();											
 			String value = entry.getValue().toString();
-			if(!value.equals(null) && !entry.getKey().equals("http://xmlns.com/foaf/0.1/nick"))															 
-				addModel.add(resource, model.getProperty(entry.getKey()), value.substring(1,value.length()-1));							
+			String key = entry.getKey().toString();
+			if(!value.equals("") && !key.equals("id")) {
+				if (key.equals("http://xmlns.com/foaf/0.1/knows")) {
+					Resource peopleLocation = model.createResource(value.substring(1,value.length()-1));
+					addModel.add(resource, model.getProperty(entry.getKey()), peopleLocation);
+				}else {
+					addModel.add(resource, model.getProperty(entry.getKey()), value.substring(1,value.length()-1));	
+				}
+			}																		 								
 		}
 		
 		Property type = model.getProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
@@ -277,12 +284,12 @@ public class PersonGraph {
 	}
 	
 	
-	private static Boolean existNickname(Iterator subjects, String nickname){
+	private static Boolean existId(Iterator subjects, String id){
 		while(subjects.hasNext()){								
 			Resource r = (Resource) subjects.next();			
 			if(r.toString().contains("http://localhost:8080/SemanticWebService/people/")){/*Verify if it's the ontology statement*/
-				String existnick = r.toString().substring(48);	
-				if (existnick.equals(nickname)) {
+				String existId = r.toString().substring(48);	
+				if (existId.equals(id)) {
 					return true;
 				}
 			}				
@@ -290,17 +297,17 @@ public class PersonGraph {
 		return false;
 	}
 	
-	private static String newNickname (Iterator json_values) {
-		String nickname = "";
+	private static String newId (Iterator json_values) {
+		String newId = "";
 		while(json_values.hasNext())
 		{
 			Entry<String, JsonValue> entry = (Entry<String, JsonValue>)json_values.next();
-			if (entry.getKey().toString().equals("http://xmlns.com/foaf/0.1/nick")){
-				String nick = entry.getValue().toString();
-				nickname = nick.substring(1,nick.length()-1);
+			if (entry.getKey().toString().equals("id")){
+				String id = entry.getValue().toString();
+				newId = id.substring(1,id.length()-1);
 			}
 		}
-		return nickname;
+		return newId;
 	}
 	
 	

@@ -38,17 +38,17 @@ public class PeopleController {
 	String uriBase = "http://localhost:8080/SemanticWebService/people/";
 	
 	@GET
-	@Path("{nick}/")
+	@Path("{id}/")
 	@Produces({"application/rdf+xml", "text/turtle"})
-	public Response getPerson(@PathParam("nick") String nick, @HeaderParam("Accept") String accept) throws Exception{
+	public Response getPerson(@PathParam("id") String id, @HeaderParam("Accept") String accept) throws Exception{
 		String format = "rdf";
 		if(accept != null && accept.equals("text/turtle"))
 			format = "ttl";
-		String file = PersonGraph.getPerson(uriBase+ nick, format);
+		String file = PersonGraph.getPerson(uriBase+ id, format);
 		if(file.equals("False"))
 			return Response.status(404).build();
 		else		
-			return Response.ok(file).header("Content-Disposition",  "attachment; filename=\""+nick+"."+format+"\" ").build();
+			return Response.ok(file).header("Content-Disposition",  "attachment; filename=\""+id+"."+format+"\" ").build();
 	}
 
 	// This method is called if XML is request
@@ -92,10 +92,10 @@ public class PeopleController {
 	
 	@PUT
     @Consumes("application/json")	
-	@Path("{nick}/")
-    public Response putPerson(@PathParam("nick") String nick, JsonObject json)  {
+	@Path("{id}/")
+    public Response putPerson(@PathParam("id") String id, JsonObject json)  {
 		try {			
-			PersonGraph.updatePersonGraph(uriBase + nick , expandJson(json));
+			PersonGraph.updatePersonGraph(uriBase + id , expandJson(json));
 			return Response.status(200).build();
 		}	
 		 catch (Exception e) {
@@ -106,11 +106,11 @@ public class PeopleController {
 	
 
 	@DELETE
-	@Path("{nick}/")	
-	public Response deletePerson(@PathParam("nick")String nick) {		
+	@Path("{id}/")	
+	public Response deletePerson(@PathParam("id")String id) {		
 		boolean exist;
 		try {
-			exist = PersonGraph.deletePersonGraph(uriBase + nick);
+			exist = PersonGraph.deletePersonGraph(uriBase + id);
 			if(exist)
 				return Response.status(200).build();
 			else
@@ -142,6 +142,8 @@ public class PeopleController {
 		String prefix = "";
 		if (property.equals("label") || property.equals("comment") ) {
 			prefix = "http://www.w3.org/2000/01/rdf-schema#";
+		}else if (property.equals("id")){
+			prefix = "";
 		}else{
 			prefix = "http://xmlns.com/foaf/0.1/";
 		}
