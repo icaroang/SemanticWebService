@@ -121,6 +121,24 @@ public class PeopleController {
 		}			
 	}
 	
+	@GET
+	@Path("{id}/images/{id_img}")
+	@Produces({MediaType.TEXT_HTML, "application/rdf+xml", "text/turtle"})
+	public Response getImage(@PathParam("id") String id, @PathParam("id_img") String id_img, @HeaderParam("Accept") String accept) throws Exception{
+		String format = "html";
+		if(accept != null && accept.equals("text/turtle"))
+			format = "ttl";
+		else if(accept != null && accept.equals("application/rdf+xml")) {
+			format = "rdf";
+		}
+		String file = PersonGraph.getPerson(uriBase+ id, format);
+		
+		if(file.equals("False"))
+			return Response.status(404).build();
+		else		
+			return Response.ok(file).header("Content-Disposition",  "attachment; filename=\""+id+"."+format+"\" ").build();
+	}
+	
 	
 	
 	private JsonObject expandJson(JsonObject obj){

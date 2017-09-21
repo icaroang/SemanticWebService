@@ -3,13 +3,26 @@ package model;
 import java.util.ArrayList;
 import java.util.List;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringReader;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonReader;
+import javax.json.JsonString;
 import javax.json.JsonValue;
+import javax.json.stream.JsonParser;
 
+import org.apache.jena.atlas.json.JSON;
+import org.apache.jena.atlas.json.io.parser.JSONParser;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.openrdf.model.Value;
 import org.openrdf.model.ValueFactory;
 import org.openrdf.query.BindingSet;
@@ -153,7 +166,8 @@ public class PersonGraph {
 			org.openrdf.model.Statement solution = result.next();						
 			Resource r ;
 			Resource o;
-			Property p = fakeModel.createProperty(solution.getPredicate().stringValue());			
+			Property p = fakeModel.createProperty(solution.getPredicate().stringValue());
+			
 				
 			if(solution.getSubject().toString().contains("_:")){
 				AnonId id = new AnonId(solution.getSubject().toString());
@@ -168,7 +182,25 @@ public class PersonGraph {
 					fakeModel.add(r, p, o);
 				}
 				else
-					fakeModel.add(r, p, solution.getObject().toString());
+					if (solution.getPredicate().stringValue().equals("http://xmlns.com/foaf/0.1/img")){
+						String img_resource = solution.getObject().toString();
+						fakeModel.add(r, p, img_resource);
+						
+						queryString =  "Describe <"+img_resource+"> ?s ?p ?o";
+						GraphQuery imgQuery =  conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString);
+		 			   	imgQuery.setIncludeInferred(false);
+		 			   	GraphQueryResult imgResult = imgQuery.evaluate();
+		 			   	while (imgResult.hasNext()) {			        	
+		 			   		org.openrdf.model.Statement triples= imgResult.next();			        	
+				        	Resource imgResource = fakeModel.createResource(triples.getSubject().stringValue());
+				        	Property imgProperty = fakeModel.createProperty(triples.getPredicate().stringValue());
+				        	String imgObject = triples.getObject().toString();
+				        	fakeModel.add(imgResource, imgProperty, imgObject);
+		 			   	}						
+					}else {
+						fakeModel.add(r, p, solution.getObject().toString());	
+					}
+					
 				}
 			exist = true;				 
 		 }
@@ -204,23 +236,39 @@ public class PersonGraph {
 		model.add(resource, type, resourceLocation);
 		Iterator iterator = json.entrySet().iterator();			
 		while (iterator.hasNext()) {
-			Entry<String, JsonValue> entry= (Entry<String, JsonValue>)iterator.next();
-			String value = entry.getValue().toString();
+			Entry<String, JsonString> entry= (Entry<String, JsonString>)iterator.next();
 			String key = entry.getKey().toString();
+			JsonString value = entry.getValue();
 			if(!value.equals("") && !key.equals("id")) {
 				if (key.equals("http://xmlns.com/foaf/0.1/knows")) {
-					Resource peopleLocation = model.createResource(value.substring(1,value.length()-1));
+					Resource peopleLocation = model.createResource(value.toString().substring(1,value.getString().length()-1));
 					model.add(resource, model.getProperty(entry.getKey()), peopleLocation);
-				}else {
-					model.add(resource, model.getProperty(entry.getKey()), value.substring(1,value.length()-1));	
+				} else if (key.equals("http://xmlns.com/foaf/0.1/img")){
+					JSONArray array = new JSONArray("["+value.getString()+"]");
+					for (int i = 0; i < array.length(); i++) {
+					    JSONObject row = array.getJSONObject(i);
+					    String id_img = row.getString("id");
+					    String description = row.getString("description");
+				    	Resource img = model.createResource("http://localhost:8080/SemanticWebService/people/" +
+				    	id + "/images/" + id_img);
+				    	model.add(resource, model.getProperty(entry.getKey()), img);
+				    	model.add(img, model.getProperty("http://www.w3.org/2000/01/rdf-schema#comment"), description);
+					}
+				} else {
+					model.add(resource, model.getProperty(entry.getKey()), value.toString().substring(1,value.getString().length()-1));	
 				}
 			}						
 		}				
 
 		conn.close();
 		return resource.getURI();
-	}
 	
+	}	
+	private static void saveImage(Resource resource, JsonObject value) {
+		JsonObject json = expandJson(value);
+		println(json);
+	}
+
 	public static void updatePersonGraph(String uri, JsonObject json) throws Exception{			
 		AGGraph graph = ConnectDataRepository();			
 		AGModel model = new AGModel(graph);			
@@ -337,6 +385,35 @@ public class PersonGraph {
 			System.err.println("Error closing repository connection: " + e);
 			e.printStackTrace();
 		}
+	}
+	
+	private static JsonObject expandJson(JsonObject value){
+		//JSONObject jsonObject = new JSONObject(value.toString());
+		
+		JsonBuilderFactory factory = Json.createBuilderFactory(null);
+		JsonObjectBuilder jsonOB = factory.createObjectBuilder();
+	
+			Iterator iterator = value.entrySet().iterator();
+			while(iterator.hasNext()){
+				Entry<String, JsonValue> entry = (Entry<String, JsonValue>)iterator.next();
+				String prefix = setPrefix(entry.getKey().toString());
+				jsonOB.add(entry.getKey(), entry.getValue().toString().substring(1, entry.getValue().toString().length()-1));
+			}		
+	
+		
+		return jsonOB.build();
+	}
+	
+	public static String setPrefix(String property) {
+		String prefix = "";
+		if (property.equals("label") || property.equals("comment") ) {
+			prefix = "http://www.w3.org/2000/01/rdf-schema#";
+		}else if (property.equals("id")){
+			prefix = "";
+		}else{
+			prefix = "http://xmlns.com/foaf/0.1/";
+		}
+		return prefix;
 	}
 
 	
