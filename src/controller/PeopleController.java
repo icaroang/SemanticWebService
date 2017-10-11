@@ -1,13 +1,21 @@
 package controller;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import javax.imageio.ImageIO;
 import javax.json.Json;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonValue;
+import javax.servlet.ServletContext;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -24,11 +32,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.jena.riot.RDFFormat;
-import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.openrdf.rio.Rio;
 
 import com.franz.agraph.jena.AGGraph;
 import com.hp.hpl.jena.rdf.model.Model;
+import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
 import jena.turtle;
 import model.PersonGraph;
@@ -123,23 +133,69 @@ public class PeopleController {
 	
 	@GET
 	@Path("{id}/images/{id_img}")
-	@Produces({MediaType.TEXT_HTML, "application/rdf+xml", "text/turtle"})
+	@Produces({"image/jpeg", "image/jpg", "image/png", "image/gif",
+			   "image/svg+xml", "application/rdf+xml", "text/turtle"})
+	
 	public Response getImage(@PathParam("id") String id, @PathParam("id_img") String id_img, @HeaderParam("Accept") String accept) throws Exception{
-		String format = "html";
+		String format = "image";
 		if(accept != null && accept.equals("text/turtle"))
 			format = "ttl";
 		else if(accept != null && accept.equals("application/rdf+xml")) {
 			format = "rdf";
 		}
-		String file = PersonGraph.getPerson(uriBase+ id, format);
+		if (format.equals("image")) {
+			String path = "images/" + id + "/" + id_img;
+			File file = new File(path);
+			if (!file.exists()) {
+				return Response.status(404).build();
+		    }
+			String ext = getFileExtension(id_img);
+			BufferedImage saved_image = ImageIO.read(file);
+
+		    ByteArrayOutputStream final_image = new ByteArrayOutputStream();
+		    ImageIO.write(saved_image, ext, final_image);
+		    byte[] imageData = final_image.toByteArray();
+		    
+		    return Response.ok(imageData).build();
+		}else {
+			String file = PersonGraph.getImage(uriBase+ id, uriBase+ id + "/images/" + id_img, format);
+			
+			if(file.equals("False"))
+				return Response.status(404).build();
+			else		
+				return Response.ok(file).header("Content-Disposition",  "attachment; filename=\""+id+"."+format+"\" ").build();	
+		} 	
 		
-		if(file.equals("False"))
-			return Response.status(404).build();
-		else		
-			return Response.ok(file).header("Content-Disposition",  "attachment; filename=\""+id+"."+format+"\" ").build();
 	}
 	
 	
+	@POST
+	@Path("{id}/images/{id_img}")
+	@Consumes({MediaType.MULTIPART_FORM_DATA})
+	public Response postImage(
+		@PathParam("id") String id,
+		@PathParam("id_img") String id_img,
+		@FormDataParam("file") InputStream uploadedInputStream,
+		@FormDataParam("file") FormDataContentDisposition fileDetail) throws Exception {
+		
+		String ResourceID = uriBase + id;
+		String ResourceImageId = uriBase + id + "/images/" + id_img;
+		String path_folder = id;
+		String filename = id_img;
+		String format = getFileExtension(id_img);
+		
+		String uri_exist = PersonGraph.getImage(ResourceID, ResourceImageId, "rdf");
+		if(uri_exist.equals("False")) {
+			return Response.status(404).build();
+		}
+		else {
+			PersonGraph.createImage(uploadedInputStream, path_folder, filename, format);
+			String output = "File uploaded to : " + ResourceID;
+			return Response.status(200).entity(output).build();
+		}
+
+	}
+
 	
 	private JsonObject expandJson(JsonObject obj){
 		JsonBuilderFactory factory = Json.createBuilderFactory(null);
@@ -166,6 +222,14 @@ public class PeopleController {
 			prefix = "http://xmlns.com/foaf/0.1/";
 		}
 		return prefix;
+	}
+	
+	private String getFileExtension(String filename) {
+	    try {
+	        return filename.substring(filename.lastIndexOf(".") + 1);
+	    } catch (Exception e) {
+	        return "";
+	    }
 	}
 		
 }

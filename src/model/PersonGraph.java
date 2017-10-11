@@ -2,13 +2,21 @@ package model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringReader;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
+import javax.imageio.ImageIO;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonBuilderFactory;
@@ -18,7 +26,11 @@ import javax.json.JsonReader;
 import javax.json.JsonString;
 import javax.json.JsonValue;
 import javax.json.stream.JsonParser;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jena.atlas.json.JSON;
 import org.apache.jena.atlas.json.io.parser.JSONParser;
 import org.json.JSONArray;
@@ -264,10 +276,6 @@ public class PersonGraph {
 		return resource.getURI();
 	
 	}	
-	private static void saveImage(Resource resource, JsonObject value) {
-		JsonObject json = expandJson(value);
-		println(json);
-	}
 
 	public static void updatePersonGraph(String uri, JsonObject json) throws Exception{			
 		AGGraph graph = ConnectDataRepository();			
@@ -308,6 +316,45 @@ public class PersonGraph {
 		return exist;
 	}
 	
+	public static String getImage(String resourceURI, String imageURI, String extensao) throws Exception {
+		ConnectCombinedRepository();
+		Model fakeModel = ModelFactory.createDefaultModel();
+		fakeModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
+		fakeModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+		
+		String queryImgString;
+		queryImgString = "Describe <"+imageURI+"> ?s ?p ?o ";
+	
+		GraphQuery describeImgQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryImgString);
+		describeImgQuery.setIncludeInferred(true);
+		GraphQueryResult resultImg = describeImgQuery.evaluate();
+		println(resultImg);
+		if (!resultImg.hasNext()) {
+			return "False";
+		}
+	
+		String file = PersonGraph.getPerson(resourceURI, extensao);
+		return file;
+	}
+
+	public static void createImage(InputStream uploadedInputStream,
+			String path_folder,
+			String filename, String format) {
+
+		BufferedImage image;
+        try {
+        	File file = new File("images/" + path_folder + "/" + filename);
+        	file.mkdirs();
+        	
+        	image = ImageIO.read(uploadedInputStream);
+        	ImageIO.write(image, format, file);
+
+        } catch (IOException e) {
+        	e.printStackTrace();
+        }
+        System.out.println("Done");
+    }
+	
 	private static boolean removeTriples(AGModel model, String uri, String except) {
 		StmtIterator result = model.listStatements();
 		boolean exist = false;
@@ -315,6 +362,9 @@ public class PersonGraph {
 			Statement st = result.next();	
 			if(!st.getSubject().isAnon()){
 				if(st.getSubject().getURI().equals(uri)) {
+					if(st.getPredicate().getURI().equals("http://xmlns.com/foaf/0.1/img")) {
+						removeImages(model, uri, st.getObject().toString());
+					}
 					if (!except.isEmpty() && !st.getPredicate().getURI().equals(except)){					
 						if(st.getObject().isAnon())							
 							model.removeAll((Resource)st.getObject(), (Property)null, (RDFNode)null);
@@ -332,6 +382,29 @@ public class PersonGraph {
 	}
 	
 	
+	private static void removeImages(AGModel model, String ResourceURI, String ResourceImageURI) {
+		
+		StmtIterator result = model.listStatements();
+		while (result.hasNext()) {				
+			Statement st = result.next();	
+			if(!st.getSubject().isAnon()){
+				if(st.getSubject().getURI().equals(ResourceImageURI)) {
+					model.remove(st);
+					}
+				}
+		}
+		String id_people = ResourceURI.toString().substring(48);
+		String id_image = ResourceImageURI.toString().substring(64);
+		String folder_path = "images/" + id_people;
+		String image_path = "images/" + id_people + "/" + id_image;
+		
+		try {
+			FileUtils.deleteDirectory(new File(folder_path));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
 	private static Boolean existId(Iterator subjects, String id){
 		while(subjects.hasNext()){								
 			Resource r = (Resource) subjects.next();			
@@ -415,7 +488,6 @@ public class PersonGraph {
 		}
 		return prefix;
 	}
-
 	
 
 }
