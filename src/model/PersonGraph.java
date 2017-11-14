@@ -1,6 +1,7 @@
 package model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -15,6 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Vector;
 
 import javax.imageio.ImageIO;
 import javax.json.Json;
@@ -250,13 +252,15 @@ public class PersonGraph {
 		while (iterator.hasNext()) {
 			Entry<String, JsonString> entry= (Entry<String, JsonString>)iterator.next();
 			String key = entry.getKey().toString();
-			JsonString value = entry.getValue();
+			String value = entry.getValue().toString();
+			JsonString Jvalue = entry.getValue();
+			
 			if(!value.equals("") && !key.equals("id")) {
 				if (key.equals("http://xmlns.com/foaf/0.1/knows")) {
-					Resource peopleLocation = model.createResource(value.toString().substring(1,value.getString().length()-1));
+					Resource peopleLocation = model.createResource(value.substring(1,value.length()-1));
 					model.add(resource, model.getProperty(entry.getKey()), peopleLocation);
 				} else if (key.equals("http://xmlns.com/foaf/0.1/img")){
-					JSONArray array = new JSONArray("["+value.getString()+"]");
+					JSONArray array = new JSONArray("["+Jvalue.getString()+"]");
 					for (int i = 0; i < array.length(); i++) {
 					    JSONObject row = array.getJSONObject(i);
 					    String id_img = row.getString("id");
@@ -267,7 +271,7 @@ public class PersonGraph {
 				    	model.add(img, model.getProperty("http://www.w3.org/2000/01/rdf-schema#comment"), description);
 					}
 				} else {
-					model.add(resource, model.getProperty(entry.getKey()), value.toString().substring(1,value.getString().length()-1));	
+					model.add(resource, model.getProperty(entry.getKey()), value.substring(1,value.length()-1));	
 				}
 			}						
 		}				
@@ -282,23 +286,43 @@ public class PersonGraph {
 		AGModel model = new AGModel(graph);			
 		Model addModel = ModelFactory.createDefaultModel();						
 		Resource resource =	addModel.createResource(uri);
-		removeTriples(model, uri, ""); // o primeiro argumento é o model, o segundo argumento são todos os sujeitos que serão removidos, e o terceiro argumento é qual predicado não será excluído
+		removeTriples(model, uri, "images"); // o primeiro argumento é o model, o segundo argumento são todos os sujeitos que serão removidos, e o terceiro argumento é qual predicado não será excluído
 							
 		Iterator iterator = json.entrySet().iterator();
 		while (iterator.hasNext()) {
-			Entry<String, JsonValue> entry= (Entry<String, JsonValue>)iterator.next();											
-			String value = entry.getValue().toString();
+			Entry<String, JsonString> entry= (Entry<String, JsonString>)iterator.next();
 			String key = entry.getKey().toString();
+			String value = entry.getValue().toString();
+			JsonString Jvalue = entry.getValue();
+		
 			if(!value.equals("") && !key.equals("id")) {
 				if (key.equals("http://xmlns.com/foaf/0.1/knows")) {
 					Resource peopleLocation = model.createResource(value.substring(1,value.length()-1));
-					addModel.add(resource, model.getProperty(entry.getKey()), peopleLocation);
-				}else {
-					addModel.add(resource, model.getProperty(entry.getKey()), value.substring(1,value.length()-1));	
+					model.add(resource, model.getProperty(entry.getKey()), peopleLocation);
+				} else if (key.equals("http://xmlns.com/foaf/0.1/img")){
+					JSONArray array = new JSONArray("["+Jvalue.getString()+"]");
+					String ids[] = new String[array.length()];
+					String Id = uri.toString().substring(48);
+					for (int i = 0; i < array.length(); i++) {
+					    JSONObject row = array.getJSONObject(i);
+					    String id_img = row.getString("id");
+					    String description = row.getString("description");
+					    
+					    ids[i] = id_img;
+					    
+				    	Resource img = model.createResource("http://localhost:8080/SemanticWebService/people/" +
+				    	Id + "/images/" + id_img);
+				    	model.add(resource, model.getProperty(entry.getKey()), img);
+				    	model.add(img, model.getProperty("http://www.w3.org/2000/01/rdf-schema#comment"), description);
+					}
+					DeleteSomeImages(model, Id, ids);
+
+				} else {
+					model.add(resource, model.getProperty(entry.getKey()), value.substring(1,value.length()-1));	
 				}
-			}																		 								
-		}
-		
+			}						
+		}	
+
 		Property type = model.getProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
 		Resource resourceLocation =	model.createResource("http://xmlns.com/foaf/0.1/Person" );
 		model.add(resource, type, resourceLocation);			
@@ -306,6 +330,25 @@ public class PersonGraph {
 		conn.close();
 	}
 	
+	private static void DeleteSomeImages(AGModel model, String id_user, String[] ids) {
+		String ResourceURI = "http://localhost:8080/SemanticWebService/people/" + id_user;
+		String id_people = ResourceURI.toString().substring(48);
+		
+		String folder_path = "images/" + id_people;
+		
+		File folder = new File(folder_path);
+		File[] listOfFiles = folder.listFiles();
+		
+		for (int i = 0; i < listOfFiles.length; i++) {
+			if (!Arrays.asList(ids).contains(listOfFiles[i].getName())){
+				String image_path = "images/" + id_user + "/" + listOfFiles[i].getName();
+				File file = new File(image_path);
+				file.delete();
+			}
+		}
+	}
+		
+
 	public static boolean deletePersonGraph(String resourceURI) throws Exception{		
 		AGGraph graph = ConnectDataRepository();			
 		AGModel model = new AGModel(graph);
@@ -362,8 +405,10 @@ public class PersonGraph {
 			Statement st = result.next();	
 			if(!st.getSubject().isAnon()){
 				if(st.getSubject().getURI().equals(uri)) {
-					if(st.getPredicate().getURI().equals("http://xmlns.com/foaf/0.1/img")) {
+					if(st.getPredicate().getURI().equals("http://xmlns.com/foaf/0.1/img") && !except.equals("images")) {
 						removeImages(model, uri, st.getObject().toString());
+					}else if (st.getPredicate().getURI().equals("http://xmlns.com/foaf/0.1/img") && except.equals("images")) {
+						removeImagesTriples(model, uri, st.getObject().toString());
 					}
 					if (!except.isEmpty() && !st.getPredicate().getURI().equals(except)){					
 						if(st.getObject().isAnon())							
@@ -382,6 +427,18 @@ public class PersonGraph {
 	}
 	
 	
+	private static void removeImagesTriples(AGModel model, String ResourceURI, String ResourceImageURI) {
+		StmtIterator result = model.listStatements();
+		while (result.hasNext()) {				
+			Statement st = result.next();	
+			if(!st.getSubject().isAnon()){
+				if(st.getSubject().getURI().equals(ResourceImageURI)) {
+					model.remove(st);
+					}
+				}
+		}
+	}
+
 	private static void removeImages(AGModel model, String ResourceURI, String ResourceImageURI) {
 		
 		StmtIterator result = model.listStatements();
