@@ -81,7 +81,7 @@ import com.hp.hpl.jena.vocabulary.RDF;
 
 import jena.turtle;
 
-public class PersonGraph {
+public class AnimalGraph {
 	public static String SERVER_URL = "http://localhost:10035";
 	public static String CATALOG_ID = "java-catalog";
 	public static String REPOSITORY_ID = "data";
@@ -127,10 +127,16 @@ public class PersonGraph {
 	
 	public static String getAll(String format) throws Exception{
 	 	ConnectCombinedRepository();
-		Model PeopleModel = ModelFactory.createDefaultModel();
+		Model AnimalsModel = ModelFactory.createDefaultModel();
+		AnimalsModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+		AnimalsModel.setNsPrefix("skos", "http://www.w3.org/2004/02/skos/core#");
+		AnimalsModel.setNsPrefix("dbo", "http://dbpedia.org/ontology/");
+		AnimalsModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
+		AnimalsModel.setNsPrefix("owl", "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#");
+		
 		boolean exist = false;
-		String queryString = "Select ?s"						
-				+ " WHERE { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Person> }";
+		String queryString = "Select ?s ?p ?o"					
+				+ "WHERE { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://dbpedia.org/ontology/Animal> }";
 		
 		closeBeforeExit(conn);
 
@@ -143,7 +149,7 @@ public class PersonGraph {
 		while (results.hasNext()) {   	
 			exist = true;
 			
-			BindingSet result= results.next();
+			BindingSet result = results.next();
 			println(result.getValue("s").toString());
 			
 			String queryDescribeString;
@@ -156,25 +162,25 @@ public class PersonGraph {
 				org.openrdf.model.Statement solution = resultDescribe.next();						
 				Resource r;
 				Resource o;
-				Property p = PeopleModel.createProperty(solution.getPredicate().stringValue());
+				Property p = AnimalsModel.createProperty(solution.getPredicate().stringValue());
 				
 					
 				if(solution.getSubject().toString().contains("_:")){
 					AnonId id = new AnonId(solution.getSubject().toString());
-					r = PeopleModel.createResource(id);
-					PeopleModel.add(r, p, solution.getObject().toString());
+					r = AnimalsModel.createResource(id);
+					AnimalsModel.add(r, p, solution.getObject().toString());
 				}
 				else{	
-					r = PeopleModel.createResource(solution.getSubject().stringValue());
+					r = AnimalsModel.createResource(solution.getSubject().stringValue());
 					if(solution.getObject().toString().contains("_:")){
 						AnonId id = new AnonId(solution.getSubject().toString());
-						o = PeopleModel.createResource(id);							 
-						PeopleModel.add(r, p, o);
+						o = AnimalsModel.createResource(id);							 
+						AnimalsModel.add(r, p, o);
 					}
 					else
 						if (solution.getPredicate().stringValue().equals("http://xmlns.com/foaf/0.1/img")){
 							String img_resource = solution.getObject().toString();
-							PeopleModel.add(r, p, img_resource);
+							AnimalsModel.add(r, p, img_resource);
 							
 							queryString =  "Describe <"+img_resource+"> ?s ?p ?o";
 							GraphQuery imgQuery =  conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString);
@@ -182,13 +188,13 @@ public class PersonGraph {
 			 			   	GraphQueryResult imgResult = imgQuery.evaluate();
 			 			   	while (imgResult.hasNext()) {			        	
 			 			   		org.openrdf.model.Statement triples= imgResult.next();			        	
-					        	Resource imgResource = PeopleModel.createResource(triples.getSubject().stringValue());
-					        	Property imgProperty = PeopleModel.createProperty(triples.getPredicate().stringValue());
+					        	Resource imgResource = AnimalsModel.createResource(triples.getSubject().stringValue());
+					        	Property imgProperty = AnimalsModel.createProperty(triples.getPredicate().stringValue());
 					        	String imgObject = triples.getObject().toString();
-					        	PeopleModel.add(imgResource, imgProperty, imgObject);
+					        	AnimalsModel.add(imgResource, imgProperty, imgObject);
 			 			   	}						
 						}else {
-							PeopleModel.add(r, p, solution.getObject().toString());	
+							AnimalsModel.add(r, p, solution.getObject().toString());	
 						}
 						
 					}
@@ -202,18 +208,21 @@ public class PersonGraph {
 			return null;
 		OutputStream stream = new ByteArrayOutputStream() ;					
 		if(format.equals("rdf"))						
-			PeopleModel.write(stream, "RDF/XML-ABBREV");				
+			AnimalsModel.write(stream, "RDF/XML-ABBREV");				
 		if(format.equals("ttl"))				
-			PeopleModel.write(stream, "TURTLE");								
+			AnimalsModel.write(stream, "TURTLE");								
 		return stream.toString();				
 
 	}
 	
-	public static String getPerson(String resourceURI, String extensao) throws Exception {
+	public static String getAnimal(String resourceURI, String extensao) throws Exception {
 		ConnectCombinedRepository();
 		Model fakeModel = ModelFactory.createDefaultModel();
-		fakeModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
 		fakeModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+		fakeModel.setNsPrefix("skos", "http://www.w3.org/2004/02/skos/core#");
+		fakeModel.setNsPrefix("dbo", "http://dbpedia.org/ontology/");
+		fakeModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
+		fakeModel.setNsPrefix("owl", "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#");
 		
 		boolean exist = false;
 		
@@ -279,7 +288,7 @@ public class PersonGraph {
 			return "False";
 	}
 
-	public static String createPerson(JsonObject json) throws Exception {
+	public static String createAnimal(JsonObject json) throws Exception {
 		AGGraph graph = ConnectDataRepository();						
 		AGModel model = new AGModel(graph);
 		
@@ -291,9 +300,9 @@ public class PersonGraph {
 			return null;
 		}
 		
-		Resource resource =	model.createResource("http://localhost:8080/SemanticWebService/people/" + id);
+		Resource resource =	model.createResource("http://localhost:8080/SemanticWebService/animals/" + id);
 		Property type = model.getProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-		Resource resourceLocation =	model.createResource("http://xmlns.com/foaf/0.1/Person" );
+		Resource resourceLocation =	model.createResource("http://dbpedia.org/ontology/Animal" );
 		model.add(resource, type, resourceLocation);
 		Iterator iterator = json.entrySet().iterator();			
 		while (iterator.hasNext()) {
@@ -303,16 +312,16 @@ public class PersonGraph {
 			JsonString Jvalue = entry.getValue();
 			
 			if(!value.equals("") && !key.equals("id")) {
-				if (key.equals("http://xmlns.com/foaf/0.1/knows")) {
-					Resource peopleLocation = model.createResource(value.substring(1,value.length()-1));
-					model.add(resource, model.getProperty(entry.getKey()), peopleLocation);
+				if (key.equals("http://dbpedia.org/ontology/breeder") || key.equals("http://www.w3.org/2004/02/skos/core#Concept")) {
+					Resource propertyLocation = model.createResource(value.substring(1,value.length()-1));
+					model.add(resource, model.getProperty(entry.getKey()), propertyLocation);
 				} else if (key.equals("http://xmlns.com/foaf/0.1/img")){
 					JSONArray array = new JSONArray("["+Jvalue.getString()+"]");
 					for (int i = 0; i < array.length(); i++) {
 					    JSONObject row = array.getJSONObject(i);
 					    String id_img = row.getString("id");
 					    String description = row.getString("description");
-				    	Resource img = model.createResource("http://localhost:8080/SemanticWebService/people/" +
+				    	Resource img = model.createResource("http://localhost:8080/SemanticWebService/animals/" +
 				    	id + "/images/" + id_img);
 				    	model.add(resource, model.getProperty(entry.getKey()), img);
 				    	model.add(img, model.getProperty("http://www.w3.org/2000/01/rdf-schema#comment"), description);
@@ -328,7 +337,7 @@ public class PersonGraph {
 	
 	}	
 
-	public static void updatePersonGraph(String uri, JsonObject json) throws Exception{			
+	public static void updateAnimalGraph(String uri, JsonObject json) throws Exception{			
 		AGGraph graph = ConnectDataRepository();			
 		AGModel model = new AGModel(graph);			
 		Model addModel = ModelFactory.createDefaultModel();						
@@ -343,13 +352,13 @@ public class PersonGraph {
 			JsonString Jvalue = entry.getValue();
 		
 			if(!value.equals("") && !key.equals("id")) {
-				if (key.equals("http://xmlns.com/foaf/0.1/knows")) {
-					Resource peopleLocation = model.createResource(value.substring(1,value.length()-1));
-					model.add(resource, model.getProperty(entry.getKey()), peopleLocation);
+				if (key.equals("http://dbpedia.org/ontology/breeder") || key.equals("http://www.w3.org/2004/02/skos/core#Concept")) {
+					Resource resourceLocation = model.createResource(value.substring(1,value.length()-1));
+					model.add(resource, model.getProperty(entry.getKey()), resourceLocation);
 				} else if (key.equals("http://xmlns.com/foaf/0.1/img")){
 					JSONArray array = new JSONArray("["+Jvalue.getString()+"]");
 					String ids[] = new String[array.length()];
-					String Id = uri.toString().substring(48);
+					String Id = uri.toString().substring(49);
 					for (int i = 0; i < array.length(); i++) {
 					    JSONObject row = array.getJSONObject(i);
 					    String id_img = row.getString("id");
@@ -357,7 +366,7 @@ public class PersonGraph {
 					    
 					    ids[i] = id_img;
 					    
-				    	Resource img = model.createResource("http://localhost:8080/SemanticWebService/people/" +
+				    	Resource img = model.createResource("http://localhost:8080/SemanticWebService/animals/" +
 				    	Id + "/images/" + id_img);
 				    	model.add(resource, model.getProperty(entry.getKey()), img);
 				    	model.add(img, model.getProperty("http://www.w3.org/2000/01/rdf-schema#comment"), description);
@@ -371,24 +380,24 @@ public class PersonGraph {
 		}	
 
 		Property type = model.getProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-		Resource resourceLocation =	model.createResource("http://xmlns.com/foaf/0.1/Person" );
+		Resource resourceLocation =	model.createResource("http://dbpedia.org/ontology/Animal" );
 		model.add(resource, type, resourceLocation);			
 		model.add(addModel);
 		conn.close();
 	}
 	
 	private static void DeleteSomeImages(AGModel model, String id_user, String[] ids) {
-		String ResourceURI = "http://localhost:8080/SemanticWebService/people/" + id_user;
-		String id_people = ResourceURI.toString().substring(48);
+		String ResourceURI = "http://localhost:8080/SemanticWebService/animals/" + id_user;
+		String id_animals = ResourceURI.toString().substring(49);
 		
-		String folder_path = "images/" + "people/" + id_people;
+		String folder_path = "images/" + "animals/" + id_animals;
 		
 		File folder = new File(folder_path);
 		File[] listOfFiles = folder.listFiles();
 		
 		for (int i = 0; i < listOfFiles.length; i++) {
 			if (!Arrays.asList(ids).contains(listOfFiles[i].getName())){
-				String image_path = "images/" + "people/" + id_user + "/" + listOfFiles[i].getName();
+				String image_path = "images/" + "animals/" + id_user + "/" + listOfFiles[i].getName();
 				File file = new File(image_path);
 				file.delete();
 			}
@@ -396,7 +405,7 @@ public class PersonGraph {
 	}
 		
 
-	public static boolean deletePersonGraph(String resourceURI) throws Exception{		
+	public static boolean deleteAnimalGraph(String resourceURI) throws Exception{		
 		AGGraph graph = ConnectDataRepository();			
 		AGModel model = new AGModel(graph);
 		StmtIterator iterator = model.listStatements();	
@@ -423,7 +432,7 @@ public class PersonGraph {
 			return "False";
 		}
 	
-		String file = PersonGraph.getPerson(resourceURI, extensao);
+		String file = AnimalGraph.getAnimal(resourceURI, extensao);
 		return file;
 	}
 
@@ -433,7 +442,7 @@ public class PersonGraph {
 
 		BufferedImage image;
         try {
-        	File file = new File("images/" + "people/" + path_folder + "/" + filename);
+        	File file = new File("images/" + "animals/" + path_folder + "/" + filename);
         	file.mkdirs();
         	
         	image = ImageIO.read(uploadedInputStream);
@@ -497,10 +506,10 @@ public class PersonGraph {
 					}
 				}
 		}
-		String id_people = ResourceURI.toString().substring(48);
+		String id_animals = ResourceURI.toString().substring(48);
 		String id_image = ResourceImageURI.toString().substring(64);
-		String folder_path = "images/" + "people/" + id_people;
-		String image_path = "images/" + "people/" + id_people + "/" + id_image;
+		String folder_path = "images/" + "animals/" + id_animals;
+		String image_path = "images/" + "animals/" + id_animals + "/" + id_image;
 		
 		try {
 			FileUtils.deleteDirectory(new File(folder_path));
@@ -512,8 +521,8 @@ public class PersonGraph {
 	private static Boolean existId(Iterator subjects, String id){
 		while(subjects.hasNext()){								
 			Resource r = (Resource) subjects.next();			
-			if(r.toString().contains("http://localhost:8080/SemanticWebService/people/")){/*Verify if it's the ontology statement*/
-				String existId = r.toString().substring(48);	
+			if(r.toString().contains("http://localhost:8080/SemanticWebService/animals/")){/*Verify if it's the ontology statement*/
+				String existId = r.toString().substring(49); 
 				if (existId.equals(id)) {
 					return true;
 				}
@@ -562,35 +571,6 @@ public class PersonGraph {
 			System.err.println("Error closing repository connection: " + e);
 			e.printStackTrace();
 		}
-	}
-	
-	private static JsonObject expandJson(JsonObject value){
-		//JSONObject jsonObject = new JSONObject(value.toString());
-		
-		JsonBuilderFactory factory = Json.createBuilderFactory(null);
-		JsonObjectBuilder jsonOB = factory.createObjectBuilder();
-	
-			Iterator iterator = value.entrySet().iterator();
-			while(iterator.hasNext()){
-				Entry<String, JsonValue> entry = (Entry<String, JsonValue>)iterator.next();
-				String prefix = setPrefix(entry.getKey().toString());
-				jsonOB.add(entry.getKey(), entry.getValue().toString().substring(1, entry.getValue().toString().length()-1));
-			}		
-	
-		
-		return jsonOB.build();
-	}
-	
-	public static String setPrefix(String property) {
-		String prefix = "";
-		if (property.equals("label") || property.equals("comment") ) {
-			prefix = "http://www.w3.org/2000/01/rdf-schema#";
-		}else if (property.equals("id")){
-			prefix = "";
-		}else{
-			prefix = "http://xmlns.com/foaf/0.1/";
-		}
-		return prefix;
 	}
 	
 

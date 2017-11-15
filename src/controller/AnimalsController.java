@@ -41,20 +41,20 @@ import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
 import jena.turtle;
-import model.PersonGraph;
+import model.AnimalGraph;
 
-@Path("/people")
-public class PeopleController {
-	String uriBase = "http://localhost:8080/SemanticWebService/people/";
+@Path("/animals")
+public class AnimalsController {
+	String uriBase = "http://localhost:8080/SemanticWebService/animals/";
 	
 	@GET
 	@Path("{id}/")
 	@Produces({"application/rdf+xml", "text/turtle"})
-	public Response getPerson(@PathParam("id") String id, @HeaderParam("Accept") String accept) throws Exception{
+	public Response getAnimal(@PathParam("id") String id, @HeaderParam("Accept") String accept) throws Exception{
 		String format = "rdf";
 		if(accept != null && accept.equals("text/turtle"))
 			format = "ttl";
-		String file = PersonGraph.getPerson(uriBase+ id, format);
+		String file = AnimalGraph.getAnimal(uriBase+ id, format);
 		if(file.equals("False"))
 			return Response.status(404).build();
 		else		
@@ -68,7 +68,7 @@ public class PeopleController {
 		String format = "rdf";
 		if(accept != null && accept.equals("text/turtle"))
 			format = "ttl";
-		String file = PersonGraph.getAll(format);		
+		String file = AnimalGraph.getAll(format);		
 		if(file == null)
 			return Response.status(404).build();
 		else		
@@ -85,11 +85,11 @@ public class PeopleController {
 	
 	@POST
 	@Consumes("application/json")
-	public Response postPerson(JsonObject json){			
+	public Response postAnimal(JsonObject json){			
 		try {					
-			String uri = PersonGraph.createPerson(expandJson(json));			
+			String uri = AnimalGraph.createAnimal(expandJson(json));			
 			if(uri == null) {
-				return Response.status(406).entity("Não foi possível cadastrar uma pessoa com o nickname solicitado.").build();
+				return Response.status(406).entity("Não foi possível cadastrar um animal com o nickname solicitado.").build();
 		    }
 			return Response.status(201).entity(uri).build();
 		}	
@@ -103,10 +103,10 @@ public class PeopleController {
 	@PUT
     @Consumes("application/json")	
 	@Path("{id}/")
-    public Response putPerson(@PathParam("id") String id, JsonObject json)  {
+    public Response putAnimal(@PathParam("id") String id, JsonObject json)  {
 		try {			
-			PersonGraph.updatePersonGraph(uriBase + id , expandJson(json));
-			return Response.status(200).build();
+			AnimalGraph.updateAnimalGraph(uriBase + id , expandJson(json));
+			return Response.status(200).entity("Atualizado com sucesso").build();
 		}	
 		 catch (Exception e) {
 			e.printStackTrace();
@@ -117,10 +117,10 @@ public class PeopleController {
 
 	@DELETE
 	@Path("{id}/")	
-	public Response deletePerson(@PathParam("id")String id) {		
+	public Response deleteAnimal(@PathParam("id")String id) {		
 		boolean exist;
 		try {
-			exist = PersonGraph.deletePersonGraph(uriBase + id);
+			exist = AnimalGraph.deleteAnimalGraph(uriBase + id);
 			if(exist)
 				return Response.status(200).build();
 			else
@@ -144,7 +144,7 @@ public class PeopleController {
 			format = "rdf";
 		}
 		if (format.equals("image")) {
-			String path = "images/" + "people/" + id + "/" + id_img;
+			String path = "images/" + "animals/" + id + "/" + id_img;
 			File file = new File(path);
 			if (!file.exists()) {
 				return Response.status(404).build();
@@ -158,7 +158,7 @@ public class PeopleController {
 		    
 		    return Response.ok(imageData).build();
 		}else {
-			String file = PersonGraph.getImage(uriBase+ id, uriBase+ id + "/images/" + id_img, format);
+			String file = AnimalGraph.getImage(uriBase+ id, uriBase+ id + "/images/" + id_img, format);
 			
 			if(file.equals("False"))
 				return Response.status(404).build();
@@ -184,12 +184,12 @@ public class PeopleController {
 		String filename = id_img;
 		String format = getFileExtension(id_img);
 		
-		String uri_exist = PersonGraph.getImage(ResourceID, ResourceImageId, "rdf");
+		String uri_exist = AnimalGraph.getImage(ResourceID, ResourceImageId, "rdf");
 		if(uri_exist.equals("False")) {
 			return Response.status(404).build();
 		}
 		else {
-			PersonGraph.createImage(uploadedInputStream, path_folder, filename, format);
+			AnimalGraph.createImage(uploadedInputStream, path_folder, filename, format);
 			String output = "File uploaded to : " + ResourceID;
 			return Response.status(200).entity(output).build();
 		}
@@ -216,6 +216,10 @@ public class PeopleController {
 		String prefix = "";
 		if (property.equals("label") || property.equals("comment") ) {
 			prefix = "http://www.w3.org/2000/01/rdf-schema#";
+		}else if (property.equals("Concept")) {
+			prefix = "http://www.w3.org/2004/02/skos/core#";
+		}else if (property.equals("breeder")) {
+			prefix = "http://dbpedia.org/ontology/";
 		}else if (property.equals("id")){
 			prefix = "";
 		}else{
