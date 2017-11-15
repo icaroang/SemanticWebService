@@ -81,7 +81,7 @@ import com.hp.hpl.jena.vocabulary.RDF;
 
 import jena.turtle;
 
-public class PersonGraph {
+public class BreedGraph {
 	public static String SERVER_URL = "http://localhost:10035";
 	public static String CATALOG_ID = "java-catalog";
 	public static String REPOSITORY_ID = "data";
@@ -127,73 +127,28 @@ public class PersonGraph {
 	
 	public static String getAll(String format) throws Exception{
 	 	ConnectCombinedRepository();
-		Model PeopleModel = ModelFactory.createDefaultModel();
+		Model BreedModel = ModelFactory.createDefaultModel();
+		BreedModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+		BreedModel.setNsPrefix("skos", "http://www.w3.org/2004/02/skos/core#");
 		boolean exist = false;
-		String queryString = "Select ?s"						
-				+ " WHERE { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://xmlns.com/foaf/0.1/Person> }";
+		String queryString = "Select ?s ?p ?o "						
+				+ " WHERE { ?s ?p ?o.filter regex(str(?s), \"breeds\", \"i\")}";
 		
 		closeBeforeExit(conn);
 
 		conn.begin();
 	
 		TupleQuery tupleQuery = conn.prepareTupleQuery(QueryLanguage.SPARQL, queryString);
-		tupleQuery.setIncludeInferred(false);
+		tupleQuery.setIncludeInferred(true);
 		TupleQueryResult results = tupleQuery.evaluate();
 		   
 		while (results.hasNext()) {   	
 			exist = true;
-			
-			BindingSet result= results.next();
-			println(result.getValue("s").toString());
-			
-			String queryDescribeString;
-			queryDescribeString = "Describe <"+result.getValue("s").toString()+"> ?s ?p ?o ";
-		
-			GraphQuery describeQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryDescribeString);
-			describeQuery.setIncludeInferred(true);
-			GraphQueryResult resultDescribe = describeQuery.evaluate();
-			while(resultDescribe.hasNext()){
-				org.openrdf.model.Statement solution = resultDescribe.next();						
-				Resource r;
-				Resource o;
-				Property p = PeopleModel.createProperty(solution.getPredicate().stringValue());
-				
-					
-				if(solution.getSubject().toString().contains("_:")){
-					AnonId id = new AnonId(solution.getSubject().toString());
-					r = PeopleModel.createResource(id);
-					PeopleModel.add(r, p, solution.getObject().toString());
-				}
-				else{	
-					r = PeopleModel.createResource(solution.getSubject().stringValue());
-					if(solution.getObject().toString().contains("_:")){
-						AnonId id = new AnonId(solution.getSubject().toString());
-						o = PeopleModel.createResource(id);							 
-						PeopleModel.add(r, p, o);
-					}
-					else
-						if (solution.getPredicate().stringValue().equals("http://xmlns.com/foaf/0.1/img")){
-							String img_resource = solution.getObject().toString();
-							PeopleModel.add(r, p, img_resource);
-							
-							queryString =  "Describe <"+img_resource+"> ?s ?p ?o";
-							GraphQuery imgQuery =  conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString);
-			 			   	imgQuery.setIncludeInferred(false);
-			 			   	GraphQueryResult imgResult = imgQuery.evaluate();
-			 			   	while (imgResult.hasNext()) {			        	
-			 			   		org.openrdf.model.Statement triples= imgResult.next();			        	
-					        	Resource imgResource = PeopleModel.createResource(triples.getSubject().stringValue());
-					        	Property imgProperty = PeopleModel.createProperty(triples.getPredicate().stringValue());
-					        	String imgObject = triples.getObject().toString();
-					        	PeopleModel.add(imgResource, imgProperty, imgObject);
-			 			   	}						
-						}else {
-							PeopleModel.add(r, p, solution.getObject().toString());	
-						}
-						
-					}
-				exist = true;				 
-			 }
+	       	BindingSet result= results.next();	        	
+	       	Resource r = BreedModel.createResource(result.getValue("s").toString());
+	       	Property p = BreedModel.createProperty(result.getValue("p").toString());
+	       	String o = result.getValue("o").toString();
+	       	BreedModel.add(r,p,o);
 	   	
 	   }
 		conn.close();
@@ -202,18 +157,19 @@ public class PersonGraph {
 			return null;
 		OutputStream stream = new ByteArrayOutputStream() ;					
 		if(format.equals("rdf"))						
-			PeopleModel.write(stream, "RDF/XML-ABBREV");				
+			BreedModel.write(stream, "RDF/XML-ABBREV");				
 		if(format.equals("ttl"))				
-			PeopleModel.write(stream, "TURTLE");								
+			BreedModel.write(stream, "TURTLE");								
 		return stream.toString();				
 
 	}
 	
-	public static String getPerson(String resourceURI, String extensao) throws Exception {
+	public static String getBreed(String resourceURI, String extensao) throws Exception {
 		ConnectCombinedRepository();
 		Model fakeModel = ModelFactory.createDefaultModel();
 		fakeModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
 		fakeModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+		fakeModel.setNsPrefix("skos", "http://www.w3.org/2004/02/skos/core#");
 		
 		boolean exist = false;
 		
@@ -242,23 +198,7 @@ public class PersonGraph {
 					o = fakeModel.createResource(id);							 
 					fakeModel.add(r, p, o);
 				}
-				else
-					if (solution.getPredicate().stringValue().equals("http://xmlns.com/foaf/0.1/img")){
-						String img_resource = solution.getObject().toString();
-						fakeModel.add(r, p, img_resource);
-						
-						queryString =  "Describe <"+img_resource+"> ?s ?p ?o";
-						GraphQuery imgQuery =  conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString);
-		 			   	imgQuery.setIncludeInferred(false);
-		 			   	GraphQueryResult imgResult = imgQuery.evaluate();
-		 			   	while (imgResult.hasNext()) {			        	
-		 			   		org.openrdf.model.Statement triples= imgResult.next();			        	
-				        	Resource imgResource = fakeModel.createResource(triples.getSubject().stringValue());
-				        	Property imgProperty = fakeModel.createProperty(triples.getPredicate().stringValue());
-				        	String imgObject = triples.getObject().toString();
-				        	fakeModel.add(imgResource, imgProperty, imgObject);
-		 			   	}						
-					}else {
+				else {
 						fakeModel.add(r, p, solution.getObject().toString());	
 					}
 					
@@ -279,7 +219,7 @@ public class PersonGraph {
 			return "False";
 	}
 
-	public static String createPerson(JsonObject json) throws Exception {
+	public static String createBreed(JsonObject json) throws Exception {
 		AGGraph graph = ConnectDataRepository();						
 		AGModel model = new AGModel(graph);
 		
@@ -291,32 +231,20 @@ public class PersonGraph {
 			return null;
 		}
 		
-		Resource resource =	model.createResource("http://localhost:8080/SemanticWebService/people/" + id);
+		Resource resource =	model.createResource("http://localhost:8080/SemanticWebService/breeds/" + id);
 		Property type = model.getProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-		Resource resourceLocation =	model.createResource("http://xmlns.com/foaf/0.1/Person" );
+		Resource resourceLocation =	model.createResource("http://www.w3.org/2004/02/skos/core#Concept");
 		model.add(resource, type, resourceLocation);
 		Iterator iterator = json.entrySet().iterator();			
 		while (iterator.hasNext()) {
 			Entry<String, JsonString> entry= (Entry<String, JsonString>)iterator.next();
 			String key = entry.getKey().toString();
 			String value = entry.getValue().toString();
-			JsonString Jvalue = entry.getValue();
 			
 			if(!value.equals("") && !key.equals("id")) {
-				if (key.equals("http://xmlns.com/foaf/0.1/knows")) {
-					Resource peopleLocation = model.createResource(value.substring(1,value.length()-1));
-					model.add(resource, model.getProperty(entry.getKey()), peopleLocation);
-				} else if (key.equals("http://xmlns.com/foaf/0.1/img")){
-					JSONArray array = new JSONArray("["+Jvalue.getString()+"]");
-					for (int i = 0; i < array.length(); i++) {
-					    JSONObject row = array.getJSONObject(i);
-					    String id_img = row.getString("id");
-					    String description = row.getString("description");
-				    	Resource img = model.createResource("http://localhost:8080/SemanticWebService/people/" +
-				    	id + "/images/" + id_img);
-				    	model.add(resource, model.getProperty(entry.getKey()), img);
-				    	model.add(img, model.getProperty("http://www.w3.org/2000/01/rdf-schema#comment"), description);
-					}
+				if (key.equals("http://www.w3.org/2004/02/skos/core#narrower") || key.equals("http://www.w3.org/2004/02/skos/core#broader")) {
+					Resource breedLocation = model.createResource(value.substring(1,value.length()-1));
+					model.add(resource, model.getProperty(entry.getKey()), breedLocation);
 				} else {
 					model.add(resource, model.getProperty(entry.getKey()), value.substring(1,value.length()-1));	
 				}
@@ -328,12 +256,12 @@ public class PersonGraph {
 	
 	}	
 
-	public static void updatePersonGraph(String uri, JsonObject json) throws Exception{			
+	public static void updateBreedGraph(String uri, JsonObject json) throws Exception{			
 		AGGraph graph = ConnectDataRepository();			
 		AGModel model = new AGModel(graph);			
 		Model addModel = ModelFactory.createDefaultModel();						
 		Resource resource =	addModel.createResource(uri);
-		removeTriples(model, uri, "images"); // o primeiro argumento é o model, o segundo argumento são todos os sujeitos que serão removidos, e o terceiro argumento é qual predicado não será excluído
+		removeTriples(model, uri, "");
 							
 		Iterator iterator = json.entrySet().iterator();
 		while (iterator.hasNext()) {
@@ -343,27 +271,9 @@ public class PersonGraph {
 			JsonString Jvalue = entry.getValue();
 		
 			if(!value.equals("") && !key.equals("id")) {
-				if (key.equals("http://xmlns.com/foaf/0.1/knows")) {
-					Resource peopleLocation = model.createResource(value.substring(1,value.length()-1));
-					model.add(resource, model.getProperty(entry.getKey()), peopleLocation);
-				} else if (key.equals("http://xmlns.com/foaf/0.1/img")){
-					JSONArray array = new JSONArray("["+Jvalue.getString()+"]");
-					String ids[] = new String[array.length()];
-					String Id = uri.toString().substring(48);
-					for (int i = 0; i < array.length(); i++) {
-					    JSONObject row = array.getJSONObject(i);
-					    String id_img = row.getString("id");
-					    String description = row.getString("description");
-					    
-					    ids[i] = id_img;
-					    
-				    	Resource img = model.createResource("http://localhost:8080/SemanticWebService/people/" +
-				    	Id + "/images/" + id_img);
-				    	model.add(resource, model.getProperty(entry.getKey()), img);
-				    	model.add(img, model.getProperty("http://www.w3.org/2000/01/rdf-schema#comment"), description);
-					}
-					DeleteSomeImages(model, Id, ids);
-
+				if (key.equals("http://www.w3.org/2004/02/skos/core#narrower") || key.equals("http://www.w3.org/2004/02/skos/core#broader")) {
+					Resource breedLocation = model.createResource(value.substring(1,value.length()-1));
+					model.add(resource, model.getProperty(entry.getKey()), breedLocation);
 				} else {
 					model.add(resource, model.getProperty(entry.getKey()), value.substring(1,value.length()-1));	
 				}
@@ -371,32 +281,14 @@ public class PersonGraph {
 		}	
 
 		Property type = model.getProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-		Resource resourceLocation =	model.createResource("http://xmlns.com/foaf/0.1/Person" );
+		Resource resourceLocation =	model.createResource("http://www.w3.org/2004/02/skos/core#Concept");
 		model.add(resource, type, resourceLocation);			
 		model.add(addModel);
 		conn.close();
 	}
-	
-	private static void DeleteSomeImages(AGModel model, String id_user, String[] ids) {
-		String ResourceURI = "http://localhost:8080/SemanticWebService/people/" + id_user;
-		String id_people = ResourceURI.toString().substring(48);
-		
-		String folder_path = "images/" + id_people;
-		
-		File folder = new File(folder_path);
-		File[] listOfFiles = folder.listFiles();
-		
-		for (int i = 0; i < listOfFiles.length; i++) {
-			if (!Arrays.asList(ids).contains(listOfFiles[i].getName())){
-				String image_path = "images/" + id_user + "/" + listOfFiles[i].getName();
-				File file = new File(image_path);
-				file.delete();
-			}
-		}
-	}
 		
 
-	public static boolean deletePersonGraph(String resourceURI) throws Exception{		
+	public static boolean deleteBreedGraph(String resourceURI) throws Exception{		
 		AGGraph graph = ConnectDataRepository();			
 		AGModel model = new AGModel(graph);
 		StmtIterator iterator = model.listStatements();	
@@ -405,46 +297,8 @@ public class PersonGraph {
 		conn.close();
 		return exist;
 	}
-	
-	public static String getImage(String resourceURI, String imageURI, String extensao) throws Exception {
-		ConnectCombinedRepository();
-		Model fakeModel = ModelFactory.createDefaultModel();
-		fakeModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
-		fakeModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
-		
-		String queryImgString;
-		queryImgString = "Describe <"+imageURI+"> ?s ?p ?o ";
-	
-		GraphQuery describeImgQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryImgString);
-		describeImgQuery.setIncludeInferred(true);
-		GraphQueryResult resultImg = describeImgQuery.evaluate();
-		println(resultImg);
-		if (!resultImg.hasNext()) {
-			return "False";
-		}
-	
-		String file = PersonGraph.getPerson(resourceURI, extensao);
-		return file;
-	}
 
-	public static void createImage(InputStream uploadedInputStream,
-			String path_folder,
-			String filename, String format) {
 
-		BufferedImage image;
-        try {
-        	File file = new File("images/" + path_folder + "/" + filename);
-        	file.mkdirs();
-        	
-        	image = ImageIO.read(uploadedInputStream);
-        	ImageIO.write(image, format, file);
-
-        } catch (IOException e) {
-        	e.printStackTrace();
-        }
-        System.out.println("Done");
-    }
-	
 	private static boolean removeTriples(AGModel model, String uri, String except) {
 		StmtIterator result = model.listStatements();
 		boolean exist = false;
@@ -452,11 +306,6 @@ public class PersonGraph {
 			Statement st = result.next();	
 			if(!st.getSubject().isAnon()){
 				if(st.getSubject().getURI().equals(uri)) {
-					if(st.getPredicate().getURI().equals("http://xmlns.com/foaf/0.1/img") && !except.equals("images")) {
-						removeImages(model, uri, st.getObject().toString());
-					}else if (st.getPredicate().getURI().equals("http://xmlns.com/foaf/0.1/img") && except.equals("images")) {
-						removeImagesTriples(model, uri, st.getObject().toString());
-					}
 					if (!except.isEmpty() && !st.getPredicate().getURI().equals(except)){					
 						if(st.getObject().isAnon())							
 							model.removeAll((Resource)st.getObject(), (Property)null, (RDFNode)null);
@@ -473,46 +322,11 @@ public class PersonGraph {
 		return exist;
 	}
 	
-	
-	private static void removeImagesTriples(AGModel model, String ResourceURI, String ResourceImageURI) {
-		StmtIterator result = model.listStatements();
-		while (result.hasNext()) {				
-			Statement st = result.next();	
-			if(!st.getSubject().isAnon()){
-				if(st.getSubject().getURI().equals(ResourceImageURI)) {
-					model.remove(st);
-					}
-				}
-		}
-	}
-
-	private static void removeImages(AGModel model, String ResourceURI, String ResourceImageURI) {
-		
-		StmtIterator result = model.listStatements();
-		while (result.hasNext()) {				
-			Statement st = result.next();	
-			if(!st.getSubject().isAnon()){
-				if(st.getSubject().getURI().equals(ResourceImageURI)) {
-					model.remove(st);
-					}
-				}
-		}
-		String id_people = ResourceURI.toString().substring(48);
-		String id_image = ResourceImageURI.toString().substring(64);
-		String folder_path = "images/" + id_people;
-		String image_path = "images/" + id_people + "/" + id_image;
-		
-		try {
-			FileUtils.deleteDirectory(new File(folder_path));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
 
 	private static Boolean existId(Iterator subjects, String id){
 		while(subjects.hasNext()){								
 			Resource r = (Resource) subjects.next();			
-			if(r.toString().contains("http://localhost:8080/SemanticWebService/people/")){/*Verify if it's the ontology statement*/
+			if(r.toString().contains("http://localhost:8080/SemanticWebService/breeds/")){/*Verify if it's the ontology statement*/
 				String existId = r.toString().substring(48);	
 				if (existId.equals(id)) {
 					return true;
