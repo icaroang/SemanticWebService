@@ -41,20 +41,20 @@ import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
 import jena.turtle;
-import model.BreedGraph;
+import model.PlaceGraph;
 
-@Path("/breeds")
-public class BreedController {
-	String uriBase = "http://localhost:8080/SemanticWebService/breeds/";
+@Path("/places")
+public class PlacesController {
+	String uriBase = "http://localhost:8080/SemanticWebService/places/";
 	
 	@GET
 	@Path("{id}/")
 	@Produces({"application/rdf+xml", "text/turtle"})
-	public Response getBreed(@PathParam("id") String id, @HeaderParam("Accept") String accept) throws Exception{
+	public Response getPlace(@PathParam("id") String id, @HeaderParam("Accept") String accept) throws Exception{
 		String format = "rdf";
 		if(accept != null && accept.equals("text/turtle"))
 			format = "ttl";
-		String file = BreedGraph.getBreed(uriBase+ id, format);
+		String file = PlaceGraph.getPlace(uriBase+ id, format);
 		if(file.equals("False"))
 			return Response.status(404).build();
 		else		
@@ -68,7 +68,7 @@ public class BreedController {
 		String format = "rdf";
 		if(accept != null && accept.equals("text/turtle"))
 			format = "ttl";
-		String file = BreedGraph.getAll(format);		
+		String file = PlaceGraph.getAll(format);		
 		if(file == null)
 			return Response.status(404).build();
 		else		
@@ -85,9 +85,9 @@ public class BreedController {
 	
 	@POST
 	@Consumes("application/json")
-	public Response postBreed(JsonObject json){			
+	public Response postPlace(JsonObject json){			
 		try {					
-			String uri = BreedGraph.createBreed(expandJson(json));		
+			String uri = PlaceGraph.createPlace(expandJson(json));		
 			if(uri == null) {
 				return Response.status(406).entity("Não foi possível cadastrar uma raça com o nickname solicitado.").build();
 		    }
@@ -103,9 +103,9 @@ public class BreedController {
 	@PUT
     @Consumes("application/json")	
 	@Path("{id}/")
-    public Response putBreed(@PathParam("id") String id, JsonObject json)  {
+    public Response putPlace(@PathParam("id") String id, JsonObject json)  {
 		try {			
-			BreedGraph.updateBreedGraph(uriBase + id , expandJson(json));
+			PlaceGraph.updatePlaceGraph(uriBase + id , expandJson(json));
 			return Response.status(200).build();
 		}	
 		 catch (Exception e) {
@@ -117,10 +117,10 @@ public class BreedController {
 
 	@DELETE
 	@Path("{id}/")	
-	public Response deleteBreed(@PathParam("id")String id) {		
+	public Response deletePlace(@PathParam("id")String id) {		
 		boolean exist;
 		try {
-			exist = BreedGraph.deleteBreedGraph(uriBase + id);
+			exist = PlaceGraph.deletePlaceGraph(uriBase + id);
 			if(exist)
 				return Response.status(200).build();
 			else
@@ -155,7 +155,7 @@ public class BreedController {
 		}else if (property.equals("id")){
 			prefix = "";
 		}else{
-			prefix = "http://www.w3.org/2004/02/skos/core#";
+			prefix = "http://www.w3.org/2003/01/geo/wgs84_pos#";
 		}
 		return prefix;
 	}
