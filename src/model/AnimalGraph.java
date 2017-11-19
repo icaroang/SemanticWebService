@@ -178,7 +178,7 @@ public class AnimalGraph {
 						AnimalsModel.add(r, p, o);
 					}
 					else
-						if (solution.getPredicate().stringValue().equals("http://xmlns.com/foaf/0.1/img")){
+						if (solution.getPredicate().stringValue().equals("http://xmlns.com/foaf/0.1/depiction")){
 							String img_resource = solution.getObject().toString();
 							AnimalsModel.add(r, p, img_resource);
 							
@@ -252,7 +252,7 @@ public class AnimalGraph {
 					fakeModel.add(r, p, o);
 				}
 				else
-					if (solution.getPredicate().stringValue().equals("http://xmlns.com/foaf/0.1/img")){
+					if (solution.getPredicate().stringValue().equals("http://xmlns.com/foaf/0.1/depiction")){
 						String img_resource = solution.getObject().toString();
 						fakeModel.add(r, p, img_resource);
 						
@@ -315,7 +315,7 @@ public class AnimalGraph {
 				if (key.equals("http://dbpedia.org/ontology/breeder") || key.equals("http://purl.org/dc/terms/type")) {
 					Resource propertyLocation = model.createResource(value.substring(1,value.length()-1));
 					model.add(resource, model.getProperty(entry.getKey()), propertyLocation);
-				} else if (key.equals("http://xmlns.com/foaf/0.1/img")){
+				} else if (key.equals("http://xmlns.com/foaf/0.1/depiction")){
 					JSONArray array = new JSONArray("["+Jvalue.getString()+"]");
 					for (int i = 0; i < array.length(); i++) {
 					    JSONObject row = array.getJSONObject(i);
@@ -355,7 +355,7 @@ public class AnimalGraph {
 				if (key.equals("http://dbpedia.org/ontology/breeder") || key.equals("http://purl.org/dc/terms/type")) {
 					Resource resourceLocation = model.createResource(value.substring(1,value.length()-1));
 					model.add(resource, model.getProperty(entry.getKey()), resourceLocation);
-				} else if (key.equals("http://xmlns.com/foaf/0.1/img")){
+				} else if (key.equals("http://xmlns.com/foaf/0.1/depiction")){
 					JSONArray array = new JSONArray("["+Jvalue.getString()+"]");
 					String ids[] = new String[array.length()];
 					String Id = uri.toString().substring(49);
@@ -461,9 +461,9 @@ public class AnimalGraph {
 			Statement st = result.next();	
 			if(!st.getSubject().isAnon()){
 				if(st.getSubject().getURI().equals(uri)) {
-					if(st.getPredicate().getURI().equals("http://xmlns.com/foaf/0.1/img") && !except.equals("images")) {
+					if(st.getPredicate().getURI().equals("http://xmlns.com/foaf/0.1/depiction") && !except.equals("images")) {
 						removeImages(model, uri, st.getObject().toString());
-					}else if (st.getPredicate().getURI().equals("http://xmlns.com/foaf/0.1/img") && except.equals("images")) {
+					}else if (st.getPredicate().getURI().equals("http://xmlns.com/foaf/0.1/depiction") && except.equals("images")) {
 						removeImagesTriples(model, uri, st.getObject().toString());
 					}
 					if (!except.isEmpty() && !st.getPredicate().getURI().equals(except)){					
