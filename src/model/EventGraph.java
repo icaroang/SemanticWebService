@@ -61,6 +61,7 @@ import com.franz.agraph.repository.AGRepository;
 import com.franz.agraph.repository.AGRepositoryConnection;
 import com.franz.agraph.repository.AGServer;
 import com.franz.agraph.repository.AGVirtualRepository;
+import com.hp.hpl.jena.datatypes.xsd.XSDDateTime;
 import com.hp.hpl.jena.graph.Node;
 import com.hp.hpl.jena.graph.NodeFactory;
 import com.hp.hpl.jena.query.Query;
@@ -81,6 +82,7 @@ import com.hp.hpl.jena.rdf.model.Statement;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
 import com.hp.hpl.jena.vocabulary.RDF;
 
+import javassist.bytecode.stackmap.TypeData;
 import jena.turtle;
 
 public class EventGraph {
@@ -133,6 +135,8 @@ public class EventGraph {
 		EventModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
 		EventModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
 		EventModel.setNsPrefix("event", "http://purl.org/NET/c4dm/event.owl#");
+		EventModel.setNsPrefix("xsd", "http://www.w3.org/2001/XMLSchema#");
+		EventModel.setNsPrefix("time", "https://www.w3.org/TR/owl-time/#time:");
 		
 		boolean exist = false;
 		String queryString = "Select ?s"						
@@ -221,6 +225,8 @@ public class EventGraph {
 		fakeModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
 		fakeModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
 		fakeModel.setNsPrefix("event", "http://purl.org/NET/c4dm/event.owl#");
+		fakeModel.setNsPrefix("xsd", "http://www.w3.org/2001/XMLSchema#");
+		fakeModel.setNsPrefix("time", "https://www.w3.org/TR/owl-time/#time:");
 		
 		boolean exist = false;
 		
@@ -313,6 +319,18 @@ public class EventGraph {
 				if (key.equals("http://purl.org/NET/c4dm/event.owl#agent") || key.equals("http://purl.org/NET/c4dm/event.owl#place")) {
 					Resource resourcePropertyLocation = model.createResource(value.substring(1,value.length()-1));
 					model.add(resource, model.getProperty(entry.getKey()), resourcePropertyLocation);
+				}
+				else if (key.equals("http://purl.org/NET/c4dm/event.owl#time")){
+				 	Resource node = model.createResource();
+				 	Property predicate = model.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+				 	Resource object = model.createResource("https://www.w3.org/TR/owl-time/#time:Instant");
+				 	
+				 	Property timeinstant = model.createProperty("https://www.w3.org/TR/owl-time/#time:inXSDDateTimeStamp");
+				 	Literal datetime = model.createTypedLiteral(value.substring(1,value.length()-1), "http://www.w3.org/2001/XMLSchema#dateTimeStamp");
+				 	node.addProperty(predicate, object);
+				 	node.addProperty(timeinstant, datetime);
+				 						                           
+					model.add(resource, model.getProperty(entry.getKey()), node);
 				} else if (key.equals("http://purl.org/NET/c4dm/event.owl#product")){
 					JSONArray array = new JSONArray("["+Jvalue.getString()+"]");
 					for (int i = 0; i < array.length(); i++) {
@@ -354,12 +372,16 @@ public class EventGraph {
 					Resource resourceLocation = model.createResource(value.substring(1,value.length()-1));
 					model.add(resource, model.getProperty(entry.getKey()), resourceLocation);
 				} else if (key.equals("http://purl.org/NET/c4dm/event.owl#time")){
-//				 	Model timeModel = ModelFactory.createDefaultModel();
-//				 	Node blankNode = NodeFactory.createAnon();
-//				 	blankNode.
-//				 						                           
-//					Resource timeResource = model.createResource(value.substring(1,value.length()-1));
-//					model.add(resource, model.getProperty(entry.getKey()), timeResource);
+				 	Resource node = model.createResource();
+				 	Property predicate = model.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+				 	Resource object = model.createResource("https://www.w3.org/TR/owl-time/#time:Instant");
+				 	
+				 	Property timeinstant = model.createProperty("https://www.w3.org/TR/owl-time/#time:inXSDDateTimeStamp");
+				 	Literal datetime = model.createTypedLiteral(value.substring(1,value.length()-1), "http://www.w3.org/2001/XMLSchema#dateTimeStamp");
+				 	node.addProperty(predicate, object);
+				 	node.addProperty(timeinstant, datetime);
+				 						                           
+					model.add(resource, model.getProperty(entry.getKey()), node);
 				} else if (key.equals("http://purl.org/NET/c4dm/event.owl#product")){
 					JSONArray array = new JSONArray("["+Jvalue.getString()+"]");
 					String ids[] = new String[array.length()];
