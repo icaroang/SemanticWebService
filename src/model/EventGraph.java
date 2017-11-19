@@ -278,7 +278,8 @@ public class EventGraph {
 				}
 			exist = true;				 
 		 }
-	
+		conn.close();
+		combinedRepo.close();
 		if(exist){
 			OutputStream stream = new ByteArrayOutputStream() ;					
 			if(extensao.equals("rdf"))						
@@ -316,7 +317,17 @@ public class EventGraph {
 			JsonString Jvalue = entry.getValue();
 			
 			if(!value.equals("") && !key.equals("id")) {
-				if (key.equals("http://purl.org/NET/c4dm/event.owl#agent") || key.equals("http://purl.org/NET/c4dm/event.owl#place")) {
+				if (key.equals("http://purl.org/NET/c4dm/event.owl#agent")){
+					JSONArray arrayAgent = new JSONArray("["+Jvalue.getString()+"]");
+					for (int i = 0; i < arrayAgent.length(); i++) {
+					    
+					    String agent = arrayAgent.getString(i);
+					     
+				    	Resource uriAgent = model.createResource(agent);
+				    	model.add(resource, model.getProperty(entry.getKey()), uriAgent);
+					}
+				}
+				else if (key.equals("http://purl.org/NET/c4dm/event.owl#place")) {
 					Resource resourcePropertyLocation = model.createResource(value.substring(1,value.length()-1));
 					model.add(resource, model.getProperty(entry.getKey()), resourcePropertyLocation);
 				}
@@ -366,9 +377,20 @@ public class EventGraph {
 			String key = entry.getKey().toString();
 			String value = entry.getValue().toString();
 			JsonString Jvalue = entry.getValue();
-		
+			
+			
 			if(!value.equals("") && !key.equals("id")) {
-				if (key.equals("http://purl.org/NET/c4dm/event.owl#agent") || key.equals("http://purl.org/NET/c4dm/event.owl#place")) {
+				if (key.equals("http://purl.org/NET/c4dm/event.owl#agent")){
+					JSONArray arrayAgent = new JSONArray("["+Jvalue.getString()+"]");
+					for (int i = 0; i < arrayAgent.length(); i++) {
+					    
+					    String agent = arrayAgent.getString(i);
+					     
+				    	Resource uriAgent = model.createResource(agent);
+				    	model.add(resource, model.getProperty(entry.getKey()), uriAgent);
+					}
+				}
+				else if (key.equals("http://purl.org/NET/c4dm/event.owl#place")) {
 					Resource resourceLocation = model.createResource(value.substring(1,value.length()-1));
 					model.add(resource, model.getProperty(entry.getKey()), resourceLocation);
 				} else if (key.equals("http://purl.org/NET/c4dm/event.owl#time")){
@@ -421,13 +443,16 @@ public class EventGraph {
 		
 		File folder = new File(folder_path);
 		File[] listOfFiles = folder.listFiles();
-		
-		for (int i = 0; i < listOfFiles.length; i++) {
-			if (!Arrays.asList(ids).contains(listOfFiles[i].getName())){
-				String image_path = "images/" + "events/" + id_user + "/" + listOfFiles[i].getName();
-				File file = new File(image_path);
-				file.delete();
-			}
+		try {
+			for (int i = 0; i < listOfFiles.length; i++) {
+				if (!Arrays.asList(ids).contains(listOfFiles[i].getName())){
+					String image_path = "images/" + "events/" + id_user + "/" + listOfFiles[i].getName();
+					File file = new File(image_path);
+					file.delete();
+				}
+			}	
+		} catch (Exception e) {
+			// TODO: handle exception
 		}
 	}
 		
