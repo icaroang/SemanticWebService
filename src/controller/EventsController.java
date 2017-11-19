@@ -41,20 +41,20 @@ import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 
 import jena.turtle;
-import model.AnimalGraph;
+import model.EventGraph;
 
-@Path("/animals")
-public class AnimalsController {
-	String uriBase = "http://localhost:8080/SemanticWebService/animals/";
+@Path("/events")
+public class EventsController {
+	String uriBase = "http://localhost:8080/SemanticWebService/events/";
 	
 	@GET
 	@Path("{id}/")
 	@Produces({"application/rdf+xml", "text/turtle"})
-	public Response getAnimal(@PathParam("id") String id, @HeaderParam("Accept") String accept) throws Exception{
+	public Response getEvent(@PathParam("id") String id, @HeaderParam("Accept") String accept) throws Exception{
 		String format = "rdf";
 		if(accept != null && accept.equals("text/turtle"))
 			format = "ttl";
-		String file = AnimalGraph.getAnimal(uriBase+ id, format);
+		String file = EventGraph.getEvent(uriBase+ id, format);
 		if(file.equals("False"))
 			return Response.status(404).build();
 		else		
@@ -68,7 +68,7 @@ public class AnimalsController {
 		String format = "rdf";
 		if(accept != null && accept.equals("text/turtle"))
 			format = "ttl";
-		String file = AnimalGraph.getAll(format);		
+		String file = EventGraph.getAll(format);		
 		if(file == null)
 			return Response.status(404).build();
 		else		
@@ -85,11 +85,11 @@ public class AnimalsController {
 	
 	@POST
 	@Consumes("application/json")
-	public Response postAnimal(JsonObject json){			
+	public Response postEvent(JsonObject json){			
 		try {					
-			String uri = AnimalGraph.createAnimal(expandJson(json));			
+			String uri = EventGraph.createEvent(expandJson(json));			
 			if(uri == null) {
-				return Response.status(406).entity("Não foi possível cadastrar um animal com o nickname solicitado.").build();
+				return Response.status(406).entity("Não foi possível cadastrar uma pessoa com o nickname solicitado.").build();
 		    }
 			return Response.status(201).entity(uri).build();
 		}	
@@ -103,10 +103,10 @@ public class AnimalsController {
 	@PUT
     @Consumes("application/json")	
 	@Path("{id}/")
-    public Response putAnimal(@PathParam("id") String id, JsonObject json)  {
+    public Response putEvent(@PathParam("id") String id, JsonObject json)  {
 		try {			
-			AnimalGraph.updateAnimalGraph(uriBase + id , expandJson(json));
-			return Response.status(200).entity("Atualizado com sucesso").build();
+			EventGraph.updateEventGraph(uriBase + id , expandJson(json));
+			return Response.status(200).build();
 		}	
 		 catch (Exception e) {
 			e.printStackTrace();
@@ -117,10 +117,10 @@ public class AnimalsController {
 
 	@DELETE
 	@Path("{id}/")	
-	public Response deleteAnimal(@PathParam("id")String id) {		
+	public Response deleteEvent(@PathParam("id")String id) {		
 		boolean exist;
 		try {
-			exist = AnimalGraph.deleteAnimalGraph(uriBase + id);
+			exist = EventGraph.deleteEventGraph(uriBase + id);
 			if(exist)
 				return Response.status(200).build();
 			else
@@ -144,7 +144,7 @@ public class AnimalsController {
 			format = "rdf";
 		}
 		if (format.equals("image")) {
-			String path = "images/" + "animals/" + id + "/" + id_img;
+			String path = "images/" + "events/" + id + "/" + id_img;
 			File file = new File(path);
 			if (!file.exists()) {
 				return Response.status(404).build();
@@ -158,7 +158,7 @@ public class AnimalsController {
 		    
 		    return Response.ok(imageData).build();
 		}else {
-			String file = AnimalGraph.getImage(uriBase+ id, uriBase+ id + "/images/" + id_img, format);
+			String file = EventGraph.getImage(uriBase+ id, uriBase+ id + "/images/" + id_img, format);
 			
 			if(file.equals("False"))
 				return Response.status(404).build();
@@ -184,12 +184,12 @@ public class AnimalsController {
 		String filename = id_img;
 		String format = getFileExtension(id_img);
 		
-		String uri_exist = AnimalGraph.getImage(ResourceID, ResourceImageId, "rdf");
+		String uri_exist = EventGraph.getImage(ResourceID, ResourceImageId, "rdf");
 		if(uri_exist.equals("False")) {
 			return Response.status(404).build();
 		}
 		else {
-			AnimalGraph.createImage(uploadedInputStream, path_folder, filename, format);
+			EventGraph.createImage(uploadedInputStream, path_folder, filename, format);
 			String output = "File uploaded to : " + ResourceID;
 			return Response.status(200).entity(output).build();
 		}
@@ -216,14 +216,10 @@ public class AnimalsController {
 		String prefix = "";
 		if (property.equals("label") || property.equals("comment") ) {
 			prefix = "http://www.w3.org/2000/01/rdf-schema#";
-		}else if (property.equals("type")) {
-			prefix = "http://purl.org/dc/terms/";
-		}else if (property.equals("breeder")) {
-			prefix = "http://dbpedia.org/ontology/";
 		}else if (property.equals("id")){
 			prefix = "";
 		}else{
-			prefix = "http://xmlns.com/foaf/0.1/";
+			prefix = "http://purl.org/NET/c4dm/event.owl#";
 		}
 		return prefix;
 	}

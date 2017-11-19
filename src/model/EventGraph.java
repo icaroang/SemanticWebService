@@ -61,6 +61,8 @@ import com.franz.agraph.repository.AGRepository;
 import com.franz.agraph.repository.AGRepositoryConnection;
 import com.franz.agraph.repository.AGServer;
 import com.franz.agraph.repository.AGVirtualRepository;
+import com.hp.hpl.jena.graph.Node;
+import com.hp.hpl.jena.graph.NodeFactory;
 import com.hp.hpl.jena.query.Query;
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
@@ -81,7 +83,7 @@ import com.hp.hpl.jena.vocabulary.RDF;
 
 import jena.turtle;
 
-public class AnimalGraph {
+public class EventGraph {
 	public static String SERVER_URL = "http://localhost:10035";
 	public static String CATALOG_ID = "java-catalog";
 	public static String REPOSITORY_ID = "data";
@@ -127,16 +129,14 @@ public class AnimalGraph {
 	
 	public static String getAll(String format) throws Exception{
 	 	ConnectCombinedRepository();
-		Model AnimalsModel = ModelFactory.createDefaultModel();
-		AnimalsModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
-		AnimalsModel.setNsPrefix("dcterms", "http://purl.org/dc/terms/");
-		AnimalsModel.setNsPrefix("dbo", "http://dbpedia.org/ontology/");
-		AnimalsModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
-		AnimalsModel.setNsPrefix("owl", "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#");
+		Model EventModel = ModelFactory.createDefaultModel();
+		EventModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
+		EventModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+		EventModel.setNsPrefix("event", "http://purl.org/NET/c4dm/event.owl#");
 		
 		boolean exist = false;
-		String queryString = "Select ?s ?p ?o"					
-				+ "WHERE { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://dbpedia.org/ontology/Animal> }";
+		String queryString = "Select ?s"						
+				+ " WHERE { ?s <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://purl.org/NET/c4dm/event.owl#Event> }";
 		
 		closeBeforeExit(conn);
 
@@ -149,7 +149,7 @@ public class AnimalGraph {
 		while (results.hasNext()) {   	
 			exist = true;
 			
-			BindingSet result = results.next();
+			BindingSet result= results.next();
 			println(result.getValue("s").toString());
 			
 			String queryDescribeString;
@@ -162,25 +162,25 @@ public class AnimalGraph {
 				org.openrdf.model.Statement solution = resultDescribe.next();						
 				Resource r;
 				Resource o;
-				Property p = AnimalsModel.createProperty(solution.getPredicate().stringValue());
+				Property p = EventModel.createProperty(solution.getPredicate().stringValue());
 				
 					
 				if(solution.getSubject().toString().contains("_:")){
 					AnonId id = new AnonId(solution.getSubject().toString());
-					r = AnimalsModel.createResource(id);
-					AnimalsModel.add(r, p, solution.getObject().toString());
+					r = EventModel.createResource(id);
+					EventModel.add(r, p, solution.getObject().toString());
 				}
 				else{	
-					r = AnimalsModel.createResource(solution.getSubject().stringValue());
+					r = EventModel.createResource(solution.getSubject().stringValue());
 					if(solution.getObject().toString().contains("_:")){
 						AnonId id = new AnonId(solution.getSubject().toString());
-						o = AnimalsModel.createResource(id);							 
-						AnimalsModel.add(r, p, o);
+						o = EventModel.createResource(id);							 
+						EventModel.add(r, p, o);
 					}
 					else
-						if (solution.getPredicate().stringValue().equals("http://xmlns.com/foaf/0.1/img")){
+						if (solution.getPredicate().stringValue().equals("http://purl.org/NET/c4dm/event.owl#product")){
 							String img_resource = solution.getObject().toString();
-							AnimalsModel.add(r, p, img_resource);
+							EventModel.add(r, p, img_resource);
 							
 							queryString =  "Describe <"+img_resource+"> ?s ?p ?o";
 							GraphQuery imgQuery =  conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString);
@@ -188,13 +188,13 @@ public class AnimalGraph {
 			 			   	GraphQueryResult imgResult = imgQuery.evaluate();
 			 			   	while (imgResult.hasNext()) {			        	
 			 			   		org.openrdf.model.Statement triples= imgResult.next();			        	
-					        	Resource imgResource = AnimalsModel.createResource(triples.getSubject().stringValue());
-					        	Property imgProperty = AnimalsModel.createProperty(triples.getPredicate().stringValue());
+					        	Resource imgResource = EventModel.createResource(triples.getSubject().stringValue());
+					        	Property imgProperty = EventModel.createProperty(triples.getPredicate().stringValue());
 					        	String imgObject = triples.getObject().toString();
-					        	AnimalsModel.add(imgResource, imgProperty, imgObject);
+					        	EventModel.add(imgResource, imgProperty, imgObject);
 			 			   	}						
 						}else {
-							AnimalsModel.add(r, p, solution.getObject().toString());	
+							EventModel.add(r, p, solution.getObject().toString());	
 						}
 						
 					}
@@ -208,21 +208,19 @@ public class AnimalGraph {
 			return null;
 		OutputStream stream = new ByteArrayOutputStream() ;					
 		if(format.equals("rdf"))						
-			AnimalsModel.write(stream, "RDF/XML-ABBREV");				
+			EventModel.write(stream, "RDF/XML-ABBREV");				
 		if(format.equals("ttl"))				
-			AnimalsModel.write(stream, "TURTLE");								
+			EventModel.write(stream, "TURTLE");								
 		return stream.toString();				
 
 	}
 	
-	public static String getAnimal(String resourceURI, String extensao) throws Exception {
+	public static String getEvent(String resourceURI, String extensao) throws Exception {
 		ConnectCombinedRepository();
 		Model fakeModel = ModelFactory.createDefaultModel();
-		fakeModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
-		fakeModel.setNsPrefix("dcterms", "http://purl.org/dc/terms/");
-		fakeModel.setNsPrefix("dbo", "http://dbpedia.org/ontology/");
 		fakeModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
-		fakeModel.setNsPrefix("owl", "http://www.ontologydesignpatterns.org/ont/dul/DUL.owl#");
+		fakeModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+		fakeModel.setNsPrefix("event", "http://purl.org/NET/c4dm/event.owl#");
 		
 		boolean exist = false;
 		
@@ -252,7 +250,7 @@ public class AnimalGraph {
 					fakeModel.add(r, p, o);
 				}
 				else
-					if (solution.getPredicate().stringValue().equals("http://xmlns.com/foaf/0.1/img")){
+					if (solution.getPredicate().stringValue().equals("http://purl.org/NET/c4dm/event.owl#product")){
 						String img_resource = solution.getObject().toString();
 						fakeModel.add(r, p, img_resource);
 						
@@ -288,7 +286,7 @@ public class AnimalGraph {
 			return "False";
 	}
 
-	public static String createAnimal(JsonObject json) throws Exception {
+	public static String createEvent(JsonObject json) throws Exception {
 		AGGraph graph = ConnectDataRepository();						
 		AGModel model = new AGModel(graph);
 		
@@ -300,9 +298,9 @@ public class AnimalGraph {
 			return null;
 		}
 		
-		Resource resource =	model.createResource("http://localhost:8080/SemanticWebService/animals/" + id);
+		Resource resource =	model.createResource("http://localhost:8080/SemanticWebService/events/" + id);
 		Property type = model.getProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-		Resource resourceLocation =	model.createResource("http://dbpedia.org/ontology/Animal" );
+		Resource resourceLocation =	model.createResource("http://purl.org/NET/c4dm/event.owl#Event");
 		model.add(resource, type, resourceLocation);
 		Iterator iterator = json.entrySet().iterator();			
 		while (iterator.hasNext()) {
@@ -312,16 +310,16 @@ public class AnimalGraph {
 			JsonString Jvalue = entry.getValue();
 			
 			if(!value.equals("") && !key.equals("id")) {
-				if (key.equals("http://dbpedia.org/ontology/breeder") || key.equals("http://purl.org/dc/terms/type")) {
-					Resource propertyLocation = model.createResource(value.substring(1,value.length()-1));
-					model.add(resource, model.getProperty(entry.getKey()), propertyLocation);
-				} else if (key.equals("http://xmlns.com/foaf/0.1/img")){
+				if (key.equals("http://purl.org/NET/c4dm/event.owl#agent") || key.equals("http://purl.org/NET/c4dm/event.owl#place")) {
+					Resource resourcePropertyLocation = model.createResource(value.substring(1,value.length()-1));
+					model.add(resource, model.getProperty(entry.getKey()), resourcePropertyLocation);
+				} else if (key.equals("http://purl.org/NET/c4dm/event.owl#product")){
 					JSONArray array = new JSONArray("["+Jvalue.getString()+"]");
 					for (int i = 0; i < array.length(); i++) {
 					    JSONObject row = array.getJSONObject(i);
 					    String id_img = row.getString("id");
 					    String description = row.getString("description");
-				    	Resource img = model.createResource("http://localhost:8080/SemanticWebService/animals/" +
+				    	Resource img = model.createResource("http://localhost:8080/SemanticWebService/events/" +
 				    	id + "/images/" + id_img);
 				    	model.add(resource, model.getProperty(entry.getKey()), img);
 				    	model.add(img, model.getProperty("http://www.w3.org/2000/01/rdf-schema#comment"), description);
@@ -337,7 +335,7 @@ public class AnimalGraph {
 	
 	}	
 
-	public static void updateAnimalGraph(String uri, JsonObject json) throws Exception{			
+	public static void updateEventGraph(String uri, JsonObject json) throws Exception{			
 		AGGraph graph = ConnectDataRepository();			
 		AGModel model = new AGModel(graph);			
 		Model addModel = ModelFactory.createDefaultModel();						
@@ -352,13 +350,20 @@ public class AnimalGraph {
 			JsonString Jvalue = entry.getValue();
 		
 			if(!value.equals("") && !key.equals("id")) {
-				if (key.equals("http://dbpedia.org/ontology/breeder") || key.equals("http://purl.org/dc/terms/type")) {
+				if (key.equals("http://purl.org/NET/c4dm/event.owl#agent") || key.equals("http://purl.org/NET/c4dm/event.owl#place")) {
 					Resource resourceLocation = model.createResource(value.substring(1,value.length()-1));
 					model.add(resource, model.getProperty(entry.getKey()), resourceLocation);
-				} else if (key.equals("http://xmlns.com/foaf/0.1/img")){
+				} else if (key.equals("http://purl.org/NET/c4dm/event.owl#time")){
+//				 	Model timeModel = ModelFactory.createDefaultModel();
+//				 	Node blankNode = NodeFactory.createAnon();
+//				 	blankNode.
+//				 						                           
+//					Resource timeResource = model.createResource(value.substring(1,value.length()-1));
+//					model.add(resource, model.getProperty(entry.getKey()), timeResource);
+				} else if (key.equals("http://purl.org/NET/c4dm/event.owl#product")){
 					JSONArray array = new JSONArray("["+Jvalue.getString()+"]");
 					String ids[] = new String[array.length()];
-					String Id = uri.toString().substring(49);
+					String Id = uri.toString().substring(48);
 					for (int i = 0; i < array.length(); i++) {
 					    JSONObject row = array.getJSONObject(i);
 					    String id_img = row.getString("id");
@@ -366,7 +371,7 @@ public class AnimalGraph {
 					    
 					    ids[i] = id_img;
 					    
-				    	Resource img = model.createResource("http://localhost:8080/SemanticWebService/animals/" +
+				    	Resource img = model.createResource("http://localhost:8080/SemanticWebService/events/" +
 				    	Id + "/images/" + id_img);
 				    	model.add(resource, model.getProperty(entry.getKey()), img);
 				    	model.add(img, model.getProperty("http://www.w3.org/2000/01/rdf-schema#comment"), description);
@@ -380,24 +385,24 @@ public class AnimalGraph {
 		}	
 
 		Property type = model.getProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
-		Resource resourceLocation =	model.createResource("http://dbpedia.org/ontology/Animal" );
+		Resource resourceLocation =	model.createResource("http://purl.org/NET/c4dm/event.owl#Event");
 		model.add(resource, type, resourceLocation);			
 		model.add(addModel);
 		conn.close();
 	}
 	
 	private static void DeleteSomeImages(AGModel model, String id_user, String[] ids) {
-		String ResourceURI = "http://localhost:8080/SemanticWebService/animals/" + id_user;
-		String id_animals = ResourceURI.toString().substring(49);
+		String ResourceURI = "http://localhost:8080/SemanticWebService/events/" + id_user;
+		String id_events = ResourceURI.toString().substring(48);
 		
-		String folder_path = "images/" + "animals/" + id_animals;
+		String folder_path = "images/" + "events/" + id_events;
 		
 		File folder = new File(folder_path);
 		File[] listOfFiles = folder.listFiles();
 		
 		for (int i = 0; i < listOfFiles.length; i++) {
 			if (!Arrays.asList(ids).contains(listOfFiles[i].getName())){
-				String image_path = "images/" + "animals/" + id_user + "/" + listOfFiles[i].getName();
+				String image_path = "images/" + "events/" + id_user + "/" + listOfFiles[i].getName();
 				File file = new File(image_path);
 				file.delete();
 			}
@@ -405,7 +410,7 @@ public class AnimalGraph {
 	}
 		
 
-	public static boolean deleteAnimalGraph(String resourceURI) throws Exception{		
+	public static boolean deleteEventGraph(String resourceURI) throws Exception{		
 		AGGraph graph = ConnectDataRepository();			
 		AGModel model = new AGModel(graph);
 		StmtIterator iterator = model.listStatements();	
@@ -432,7 +437,7 @@ public class AnimalGraph {
 			return "False";
 		}
 	
-		String file = AnimalGraph.getAnimal(resourceURI, extensao);
+		String file = EventGraph.getEvent(resourceURI, extensao);
 		return file;
 	}
 
@@ -442,7 +447,7 @@ public class AnimalGraph {
 
 		BufferedImage image;
         try {
-        	File file = new File("images/" + "animals/" + path_folder + "/" + filename);
+        	File file = new File("images/" + "events/" + path_folder + "/" + filename);
         	file.mkdirs();
         	
         	image = ImageIO.read(uploadedInputStream);
@@ -461,9 +466,9 @@ public class AnimalGraph {
 			Statement st = result.next();	
 			if(!st.getSubject().isAnon()){
 				if(st.getSubject().getURI().equals(uri)) {
-					if(st.getPredicate().getURI().equals("http://xmlns.com/foaf/0.1/img") && !except.equals("images")) {
+					if(st.getPredicate().getURI().equals("http://purl.org/NET/c4dm/event.owl#product") && !except.equals("images")) {
 						removeImages(model, uri, st.getObject().toString());
-					}else if (st.getPredicate().getURI().equals("http://xmlns.com/foaf/0.1/img") && except.equals("images")) {
+					}else if (st.getPredicate().getURI().equals("http://purl.org/NET/c4dm/event.owl#product") && except.equals("images")) {
 						removeImagesTriples(model, uri, st.getObject().toString());
 					}
 					if (!except.isEmpty() && !st.getPredicate().getURI().equals(except)){					
@@ -506,10 +511,10 @@ public class AnimalGraph {
 					}
 				}
 		}
-		String id_animals = ResourceURI.toString().substring(48);
+		String id_events = ResourceURI.toString().substring(48);
 		String id_image = ResourceImageURI.toString().substring(64);
-		String folder_path = "images/" + "animals/" + id_animals;
-		String image_path = "images/" + "animals/" + id_animals + "/" + id_image;
+		String folder_path = "images/" + "events/" + id_events;
+		String image_path = "images/" + "events/" + id_events + "/" + id_image;
 		
 		try {
 			FileUtils.deleteDirectory(new File(folder_path));
@@ -521,8 +526,8 @@ public class AnimalGraph {
 	private static Boolean existId(Iterator subjects, String id){
 		while(subjects.hasNext()){								
 			Resource r = (Resource) subjects.next();			
-			if(r.toString().contains("http://localhost:8080/SemanticWebService/animals/")){/*Verify if it's the ontology statement*/
-				String existId = r.toString().substring(49); 
+			if(r.toString().contains("http://localhost:8080/SemanticWebService/events/")){/*Verify if it's the ontology statement*/
+				String existId = r.toString().substring(48);	
 				if (existId.equals(id)) {
 					return true;
 				}
@@ -572,6 +577,5 @@ public class AnimalGraph {
 			e.printStackTrace();
 		}
 	}
-	
 
 }
