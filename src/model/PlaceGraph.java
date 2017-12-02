@@ -80,6 +80,7 @@ import com.hp.hpl.jena.rdf.model.StmtIterator;
 import com.hp.hpl.jena.vocabulary.RDF;
 
 import jena.turtle;
+import util.JenaSesameUtils;
 
 public class PlaceGraph {
 	public static String SERVER_URL = "http://localhost:10035";
@@ -133,7 +134,7 @@ public class PlaceGraph {
 		PlaceModel.setNsPrefix("geo", "http://www.w3.org/2003/01/geo/wgs84_pos#");
 		boolean exist = false;
 		String queryString = "Select ?s ?p ?o "						
-				+ " WHERE { ?s ?p ?o.filter regex(str(?s), \"places\", \"i\")}";
+				+ " WHERE { ?s ?p ?o.filter regex(str(?s), \"places/\", \"i\")}";
 		
 		closeBeforeExit(conn);
 
@@ -145,13 +146,24 @@ public class PlaceGraph {
 		   
 		while (results.hasNext()) {   	
 			exist = true;
-	       	BindingSet result= results.next();	        	
-	       	Resource r = PlaceModel.createResource(result.getValue("s").toString());
-	       	Property p = PlaceModel.createProperty(result.getValue("p").toString());
-	       	String o = result.getValue("o").toString();
-	       	PlaceModel.add(r,p,o);
-	   	
-	   }
+			
+			BindingSet result = results.next();
+			
+			String queryDescribeString;
+			queryDescribeString = "Describe <"+result.getValue("s").toString()+"> ?s ?p ?o ";
+		
+			GraphQuery describeQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryDescribeString);
+			describeQuery.setIncludeInferred(true);
+			GraphQueryResult resultDescribe = describeQuery.evaluate();
+			while(resultDescribe.hasNext()){
+				org.openrdf.model.Statement solution = resultDescribe.next();						
+				JenaSesameUtils convert = new JenaSesameUtils();
+				Statement statement = convert.asJenaStatement(solution);
+				PlaceModel.add(statement);			 
+				exist = true;
+			}
+		}
+		
 		conn.close();
 		combinedRepo.close();
 		if(!exist)
@@ -182,29 +194,10 @@ public class PlaceGraph {
 		GraphQueryResult  result = describeQuery.evaluate();
 		while(result.hasNext()){
 			org.openrdf.model.Statement solution = result.next();						
-			Resource r ;
-			Resource o;
-			Property p = fakeModel.createProperty(solution.getPredicate().stringValue());
-			
-				
-			if(solution.getSubject().toString().contains("_:")){
-				AnonId id = new AnonId(solution.getSubject().toString());
-				r = fakeModel.createResource(id);
-				fakeModel.add(r, p, solution.getObject().toString());
-			}
-			else{	
-				r = fakeModel.createResource(solution.getSubject().stringValue());
-				if(solution.getObject().toString().contains("_:")){
-					AnonId id = new AnonId(solution.getSubject().toString());
-					o = fakeModel.createResource(id);							 
-					fakeModel.add(r, p, o);
-				}
-				else {
-						fakeModel.add(r, p, solution.getObject().toString());	
-					}
-					
-				}
-			exist = true;				 
+			JenaSesameUtils convert = new JenaSesameUtils();
+			Statement statement = convert.asJenaStatement(solution);
+			fakeModel.add(statement);			 
+			exist = true;
 		 }
 	
 		if(exist){

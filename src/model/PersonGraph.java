@@ -80,6 +80,7 @@ import com.hp.hpl.jena.rdf.model.StmtIterator;
 import com.hp.hpl.jena.vocabulary.RDF;
 
 import jena.turtle;
+import util.JenaSesameUtils;
 
 public class PersonGraph {
 	public static String SERVER_URL = "http://localhost:10035";
@@ -154,44 +155,9 @@ public class PersonGraph {
 			GraphQueryResult resultDescribe = describeQuery.evaluate();
 			while(resultDescribe.hasNext()){
 				org.openrdf.model.Statement solution = resultDescribe.next();						
-				Resource r;
-				Resource o;
-				Property p = PeopleModel.createProperty(solution.getPredicate().stringValue());
-				
-					
-				if(solution.getSubject().toString().contains("_:")){
-					AnonId id = new AnonId(solution.getSubject().toString());
-					r = PeopleModel.createResource(id);
-					PeopleModel.add(r, p, solution.getObject().toString());
-				}
-				else{	
-					r = PeopleModel.createResource(solution.getSubject().stringValue());
-					if(solution.getObject().toString().contains("_:")){
-						AnonId id = new AnonId(solution.getSubject().toString());
-						o = PeopleModel.createResource(id);							 
-						PeopleModel.add(r, p, o);
-					}
-					else
-						if (solution.getPredicate().stringValue().equals("http://xmlns.com/foaf/0.1/img")){
-							String img_resource = solution.getObject().toString();
-							PeopleModel.add(r, p, img_resource);
-							
-							queryString =  "Describe <"+img_resource+"> ?s ?p ?o";
-							GraphQuery imgQuery =  conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString);
-			 			   	imgQuery.setIncludeInferred(false);
-			 			   	GraphQueryResult imgResult = imgQuery.evaluate();
-			 			   	while (imgResult.hasNext()) {			        	
-			 			   		org.openrdf.model.Statement triples= imgResult.next();			        	
-					        	Resource imgResource = PeopleModel.createResource(triples.getSubject().stringValue());
-					        	Property imgProperty = PeopleModel.createProperty(triples.getPredicate().stringValue());
-					        	String imgObject = triples.getObject().toString();
-					        	PeopleModel.add(imgResource, imgProperty, imgObject);
-			 			   	}						
-						}else {
-							PeopleModel.add(r, p, solution.getObject().toString());	
-						}
-						
-					}
+				JenaSesameUtils convert = new JenaSesameUtils();
+				Statement statement = convert.asJenaStatement(solution);
+				PeopleModel.add(statement);			 
 				exist = true;				 
 			 }
 	   	
@@ -225,45 +191,10 @@ public class PersonGraph {
 		GraphQueryResult  result = describeQuery.evaluate();
 		while(result.hasNext()){
 			org.openrdf.model.Statement solution = result.next();						
-			Resource r ;
-			Resource o;
-			Property p = fakeModel.createProperty(solution.getPredicate().stringValue());
-			
-				
-			if(solution.getSubject().toString().contains("_:")){
-				AnonId id = new AnonId(solution.getSubject().toString());
-				r = fakeModel.createResource(id);
-				fakeModel.add(r, p, solution.getObject().toString());
-			}
-			else{	
-				r = fakeModel.createResource(solution.getSubject().stringValue());
-				if(solution.getObject().toString().contains("_:")){
-					AnonId id = new AnonId(solution.getSubject().toString());
-					o = fakeModel.createResource(id);							 
-					fakeModel.add(r, p, o);
-				}
-				else
-					if (solution.getPredicate().stringValue().equals("http://xmlns.com/foaf/0.1/img")){
-						String img_resource = solution.getObject().toString();
-						fakeModel.add(r, p, img_resource);
-						
-						queryString =  "Describe <"+img_resource+"> ?s ?p ?o";
-						GraphQuery imgQuery =  conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString);
-		 			   	imgQuery.setIncludeInferred(false);
-		 			   	GraphQueryResult imgResult = imgQuery.evaluate();
-		 			   	while (imgResult.hasNext()) {			        	
-		 			   		org.openrdf.model.Statement triples= imgResult.next();			        	
-				        	Resource imgResource = fakeModel.createResource(triples.getSubject().stringValue());
-				        	Property imgProperty = fakeModel.createProperty(triples.getPredicate().stringValue());
-				        	String imgObject = triples.getObject().toString();
-				        	fakeModel.add(imgResource, imgProperty, imgObject);
-		 			   	}						
-					}else {
-						fakeModel.add(r, p, solution.getObject().toString());	
-					}
-					
-				}
-			exist = true;				 
+			JenaSesameUtils convert = new JenaSesameUtils();
+			Statement statement = convert.asJenaStatement(solution);
+			fakeModel.add(statement);			 
+			exist = true;			 
 		 }
 	
 		if(exist){
@@ -407,23 +338,23 @@ public class PersonGraph {
 	}
 	
 	public static String getImage(String resourceURI, String imageURI, String extensao) throws Exception {
-		ConnectCombinedRepository();
-		Model fakeModel = ModelFactory.createDefaultModel();
-		fakeModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
-		fakeModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
-		
-		String queryImgString;
-		queryImgString = "Describe <"+imageURI+"> ?s ?p ?o ";
+//		ConnectCombinedRepository();
+//		Model fakeModel = ModelFactory.createDefaultModel();
+//		fakeModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
+//		fakeModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+//		
+//		String queryImgString;
+//		queryImgString = "Describe <"+imageURI+"> ?s ?p ?o ";
+//	
+//		GraphQuery describeImgQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryImgString);
+//		describeImgQuery.setIncludeInferred(true);
+//		GraphQueryResult resultImg = describeImgQuery.evaluate();
+//		println(resultImg);
+//		if (!resultImg.hasNext()) {
+//			return "False";
+//		}
 	
-		GraphQuery describeImgQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryImgString);
-		describeImgQuery.setIncludeInferred(true);
-		GraphQueryResult resultImg = describeImgQuery.evaluate();
-		println(resultImg);
-		if (!resultImg.hasNext()) {
-			return "False";
-		}
-	
-		String file = PersonGraph.getPerson(resourceURI, extensao);
+		String file = PersonGraph.getPerson(imageURI, extensao);
 		return file;
 	}
 

@@ -84,6 +84,7 @@ import com.hp.hpl.jena.vocabulary.RDF;
 
 import javassist.bytecode.stackmap.TypeData;
 import jena.turtle;
+import util.JenaSesameUtils;
 
 public class EventGraph {
 	public static String SERVER_URL = "http://localhost:10035";
@@ -136,7 +137,8 @@ public class EventGraph {
 		EventModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
 		EventModel.setNsPrefix("event", "http://purl.org/NET/c4dm/event.owl#");
 		EventModel.setNsPrefix("xsd", "http://www.w3.org/2001/XMLSchema#");
-		EventModel.setNsPrefix("time", "https://www.w3.org/TR/owl-time/#time:");
+		EventModel.setNsPrefix("owl-time", "https://www.w3.org/TR/owl-time/#time:");
+		EventModel.setNsPrefix("time", "http://www.w3.org/2006/time#");
 		
 		boolean exist = false;
 		String queryString = "Select ?s"						
@@ -163,46 +165,10 @@ public class EventGraph {
 			describeQuery.setIncludeInferred(true);
 			GraphQueryResult resultDescribe = describeQuery.evaluate();
 			while(resultDescribe.hasNext()){
-				org.openrdf.model.Statement solution = resultDescribe.next();						
-				Resource r;
-				Resource o;
-				Property p = EventModel.createProperty(solution.getPredicate().stringValue());
-				
-					
-				if(solution.getSubject().toString().contains("_:")){
-					AnonId id = new AnonId(solution.getSubject().toString());
-					r = EventModel.createResource(id);
-					EventModel.add(r, p, solution.getObject().toString());
-				}
-				else{	
-					r = EventModel.createResource(solution.getSubject().stringValue());
-					if(solution.getObject().toString().contains("_:")){
-						AnonId id = new AnonId(solution.getSubject().toString());
-						o = EventModel.createResource(id);							 
-						EventModel.add(r, p, o);
-					}
-					else
-						if (solution.getPredicate().stringValue().equals("http://purl.org/NET/c4dm/event.owl#product")){
-							String img_resource = solution.getObject().toString();
-							EventModel.add(r, p, img_resource);
-							
-							queryString =  "Describe <"+img_resource+"> ?s ?p ?o";
-							GraphQuery imgQuery =  conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString);
-			 			   	imgQuery.setIncludeInferred(false);
-			 			   	GraphQueryResult imgResult = imgQuery.evaluate();
-			 			   	while (imgResult.hasNext()) {			        	
-			 			   		org.openrdf.model.Statement triples= imgResult.next();			        	
-					        	Resource imgResource = EventModel.createResource(triples.getSubject().stringValue());
-					        	Property imgProperty = EventModel.createProperty(triples.getPredicate().stringValue());
-					        	String imgObject = triples.getObject().toString();
-					        	EventModel.add(imgResource, imgProperty, imgObject);
-			 			   	}						
-						}else {
-							EventModel.add(r, p, solution.getObject().toString());	
-						}
-						
-					}
-				exist = true;				 
+				org.openrdf.model.Statement solution = resultDescribe.next();
+				JenaSesameUtils convert = new JenaSesameUtils();
+				Statement statement = convert.asJenaStatement(solution);
+				EventModel.add(statement);
 			 }
 	   	
 	   }
@@ -226,7 +192,8 @@ public class EventGraph {
 		fakeModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
 		fakeModel.setNsPrefix("event", "http://purl.org/NET/c4dm/event.owl#");
 		fakeModel.setNsPrefix("xsd", "http://www.w3.org/2001/XMLSchema#");
-		fakeModel.setNsPrefix("time", "https://www.w3.org/TR/owl-time/#time:");
+		fakeModel.setNsPrefix("owl-time", "https://www.w3.org/TR/owl-time/#time:");
+		fakeModel.setNsPrefix("time", "http://www.w3.org/2006/time#");
 		
 		boolean exist = false;
 		
@@ -237,47 +204,13 @@ public class EventGraph {
 		describeQuery.setIncludeInferred(true);
 		GraphQueryResult  result = describeQuery.evaluate();
 		while(result.hasNext()){
-			org.openrdf.model.Statement solution = result.next();						
-			Resource r ;
-			Resource o;
-			Property p = fakeModel.createProperty(solution.getPredicate().stringValue());
-			
-				
-			if(solution.getSubject().toString().contains("_:")){
-				AnonId id = new AnonId(solution.getSubject().toString());
-				r = fakeModel.createResource(id);
-				fakeModel.add(r, p, solution.getObject().toString());
-			}
-			else{	
-				r = fakeModel.createResource(solution.getSubject().stringValue());
-				if(solution.getObject().toString().contains("_:")){
-					AnonId id = new AnonId(solution.getSubject().toString());
-					o = fakeModel.createResource(id);							 
-					fakeModel.add(r, p, o);
-				}
-				else
-					if (solution.getPredicate().stringValue().equals("http://purl.org/NET/c4dm/event.owl#product")){
-						String img_resource = solution.getObject().toString();
-						fakeModel.add(r, p, img_resource);
-						
-						queryString =  "Describe <"+img_resource+"> ?s ?p ?o";
-						GraphQuery imgQuery =  conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString);
-		 			   	imgQuery.setIncludeInferred(false);
-		 			   	GraphQueryResult imgResult = imgQuery.evaluate();
-		 			   	while (imgResult.hasNext()) {			        	
-		 			   		org.openrdf.model.Statement triples= imgResult.next();			        	
-				        	Resource imgResource = fakeModel.createResource(triples.getSubject().stringValue());
-				        	Property imgProperty = fakeModel.createProperty(triples.getPredicate().stringValue());
-				        	String imgObject = triples.getObject().toString();
-				        	fakeModel.add(imgResource, imgProperty, imgObject);
-		 			   	}						
-					}else {
-						fakeModel.add(r, p, solution.getObject().toString());	
-					}
-					
-				}
-			exist = true;				 
-		 }
+			org.openrdf.model.Statement solution = result.next();
+			JenaSesameUtils convert = new JenaSesameUtils();
+			Statement statement = convert.asJenaStatement(solution);
+			fakeModel.add(statement);			 
+			exist = true;
+		}
+		
 		conn.close();
 		combinedRepo.close();
 		if(exist){
@@ -468,23 +401,23 @@ public class EventGraph {
 	}
 	
 	public static String getImage(String resourceURI, String imageURI, String extensao) throws Exception {
-		ConnectCombinedRepository();
-		Model fakeModel = ModelFactory.createDefaultModel();
-		fakeModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
-		fakeModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
-		
-		String queryImgString;
-		queryImgString = "Describe <"+imageURI+"> ?s ?p ?o ";
+//		ConnectCombinedRepository();
+//		Model fakeModel = ModelFactory.createDefaultModel();
+//		fakeModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
+//		fakeModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+//		
+//		String queryImgString;
+//		queryImgString = "Describe <"+imageURI+"> ?s ?p ?o ";
+//	
+//		GraphQuery describeImgQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryImgString);
+//		describeImgQuery.setIncludeInferred(true);
+//		GraphQueryResult resultImg = describeImgQuery.evaluate();
+//		println(resultImg);
+//		if (!resultImg.hasNext()) {
+//			return "False";
+//		}
 	
-		GraphQuery describeImgQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryImgString);
-		describeImgQuery.setIncludeInferred(true);
-		GraphQueryResult resultImg = describeImgQuery.evaluate();
-		println(resultImg);
-		if (!resultImg.hasNext()) {
-			return "False";
-		}
-	
-		String file = EventGraph.getEvent(resourceURI, extensao);
+		String file = EventGraph.getEvent(imageURI, extensao);
 		return file;
 	}
 

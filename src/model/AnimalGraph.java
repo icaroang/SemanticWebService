@@ -80,6 +80,7 @@ import com.hp.hpl.jena.rdf.model.StmtIterator;
 import com.hp.hpl.jena.vocabulary.RDF;
 
 import jena.turtle;
+import util.JenaSesameUtils;
 
 public class AnimalGraph {
 	public static String SERVER_URL = "http://localhost:10035";
@@ -160,48 +161,13 @@ public class AnimalGraph {
 			GraphQueryResult resultDescribe = describeQuery.evaluate();
 			while(resultDescribe.hasNext()){
 				org.openrdf.model.Statement solution = resultDescribe.next();						
-				Resource r;
-				Resource o;
-				Property p = AnimalsModel.createProperty(solution.getPredicate().stringValue());
-				
-					
-				if(solution.getSubject().toString().contains("_:")){
-					AnonId id = new AnonId(solution.getSubject().toString());
-					r = AnimalsModel.createResource(id);
-					AnimalsModel.add(r, p, solution.getObject().toString());
-				}
-				else{	
-					r = AnimalsModel.createResource(solution.getSubject().stringValue());
-					if(solution.getObject().toString().contains("_:")){
-						AnonId id = new AnonId(solution.getSubject().toString());
-						o = AnimalsModel.createResource(id);							 
-						AnimalsModel.add(r, p, o);
-					}
-					else
-						if (solution.getPredicate().stringValue().equals("http://xmlns.com/foaf/0.1/depiction")){
-							String img_resource = solution.getObject().toString();
-							AnimalsModel.add(r, p, img_resource);
-							
-							queryString =  "Describe <"+img_resource+"> ?s ?p ?o";
-							GraphQuery imgQuery =  conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString);
-			 			   	imgQuery.setIncludeInferred(false);
-			 			   	GraphQueryResult imgResult = imgQuery.evaluate();
-			 			   	while (imgResult.hasNext()) {			        	
-			 			   		org.openrdf.model.Statement triples= imgResult.next();			        	
-					        	Resource imgResource = AnimalsModel.createResource(triples.getSubject().stringValue());
-					        	Property imgProperty = AnimalsModel.createProperty(triples.getPredicate().stringValue());
-					        	String imgObject = triples.getObject().toString();
-					        	AnimalsModel.add(imgResource, imgProperty, imgObject);
-			 			   	}						
-						}else {
-							AnimalsModel.add(r, p, solution.getObject().toString());	
-						}
-						
-					}
-				exist = true;				 
-			 }
-	   	
+				JenaSesameUtils convert = new JenaSesameUtils();
+				Statement statement = convert.asJenaStatement(solution);
+				AnimalsModel.add(statement);			 
+				exist = true;
+			}
 	   }
+			
 		conn.close();
 		combinedRepo.close();
 		if(!exist)
@@ -234,45 +200,10 @@ public class AnimalGraph {
 		GraphQueryResult  result = describeQuery.evaluate();
 		while(result.hasNext()){
 			org.openrdf.model.Statement solution = result.next();						
-			Resource r ;
-			Resource o;
-			Property p = fakeModel.createProperty(solution.getPredicate().stringValue());
-			
-				
-			if(solution.getSubject().toString().contains("_:")){
-				AnonId id = new AnonId(solution.getSubject().toString());
-				r = fakeModel.createResource(id);
-				fakeModel.add(r, p, solution.getObject().toString());
-			}
-			else{	
-				r = fakeModel.createResource(solution.getSubject().stringValue());
-				if(solution.getObject().toString().contains("_:")){
-					AnonId id = new AnonId(solution.getSubject().toString());
-					o = fakeModel.createResource(id);							 
-					fakeModel.add(r, p, o);
-				}
-				else
-					if (solution.getPredicate().stringValue().equals("http://xmlns.com/foaf/0.1/depiction")){
-						String img_resource = solution.getObject().toString();
-						fakeModel.add(r, p, img_resource);
-						
-						queryString =  "Describe <"+img_resource+"> ?s ?p ?o";
-						GraphQuery imgQuery =  conn.prepareGraphQuery(QueryLanguage.SPARQL, queryString);
-		 			   	imgQuery.setIncludeInferred(false);
-		 			   	GraphQueryResult imgResult = imgQuery.evaluate();
-		 			   	while (imgResult.hasNext()) {			        	
-		 			   		org.openrdf.model.Statement triples= imgResult.next();			        	
-				        	Resource imgResource = fakeModel.createResource(triples.getSubject().stringValue());
-				        	Property imgProperty = fakeModel.createProperty(triples.getPredicate().stringValue());
-				        	String imgObject = triples.getObject().toString();
-				        	fakeModel.add(imgResource, imgProperty, imgObject);
-		 			   	}						
-					}else {
-						fakeModel.add(r, p, solution.getObject().toString());	
-					}
-					
-				}
-			exist = true;				 
+			JenaSesameUtils convert = new JenaSesameUtils();
+			Statement statement = convert.asJenaStatement(solution);
+			fakeModel.add(statement);			 
+			exist = true;
 		 }
 	
 		if(exist){
@@ -416,23 +347,23 @@ public class AnimalGraph {
 	}
 	
 	public static String getImage(String resourceURI, String imageURI, String extensao) throws Exception {
-		ConnectCombinedRepository();
-		Model fakeModel = ModelFactory.createDefaultModel();
-		fakeModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
-		fakeModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
-		
-		String queryImgString;
-		queryImgString = "Describe <"+imageURI+"> ?s ?p ?o ";
-	
-		GraphQuery describeImgQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryImgString);
-		describeImgQuery.setIncludeInferred(true);
-		GraphQueryResult resultImg = describeImgQuery.evaluate();
-		println(resultImg);
-		if (!resultImg.hasNext()) {
-			return "False";
-		}
-	
-		String file = AnimalGraph.getAnimal(resourceURI, extensao);
+//		ConnectCombinedRepository();
+//		Model fakeModel = ModelFactory.createDefaultModel();
+//		fakeModel.setNsPrefix("foaf", "http://xmlns.com/foaf/0.1/");
+//		fakeModel.setNsPrefix("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
+//		
+//		String queryImgString;
+//		queryImgString = "Describe <"+imageURI+"> ?s ?p ?o ";
+//	
+//		GraphQuery describeImgQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryImgString);
+//		describeImgQuery.setIncludeInferred(true);
+//		GraphQueryResult resultImg = describeImgQuery.evaluate();
+//		println(resultImg);
+//		if (!resultImg.hasNext()) {
+//			return "False";
+//		}
+//	
+		String file = AnimalGraph.getAnimal(imageURI, extensao);
 		return file;
 	}
 

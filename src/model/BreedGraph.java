@@ -80,6 +80,7 @@ import com.hp.hpl.jena.rdf.model.StmtIterator;
 import com.hp.hpl.jena.vocabulary.RDF;
 
 import jena.turtle;
+import util.JenaSesameUtils;
 
 public class BreedGraph {
 	public static String SERVER_URL = "http://localhost:10035";
@@ -144,13 +145,24 @@ public class BreedGraph {
 		   
 		while (results.hasNext()) {   	
 			exist = true;
-	       	BindingSet result= results.next();	        	
-	       	Resource r = BreedModel.createResource(result.getValue("s").toString());
-	       	Property p = BreedModel.createProperty(result.getValue("p").toString());
-	       	String o = result.getValue("o").toString();
-	       	BreedModel.add(r,p,o);
-	   	
-	   }
+			
+			BindingSet result = results.next();
+			
+			String queryDescribeString;
+			queryDescribeString = "Describe <"+result.getValue("s").toString()+"> ?s ?p ?o ";
+		
+			GraphQuery describeQuery = conn.prepareGraphQuery(QueryLanguage.SPARQL, queryDescribeString);
+			describeQuery.setIncludeInferred(true);
+			GraphQueryResult resultDescribe = describeQuery.evaluate();
+			while(resultDescribe.hasNext()){
+				org.openrdf.model.Statement solution = resultDescribe.next();						
+				JenaSesameUtils convert = new JenaSesameUtils();
+				Statement statement = convert.asJenaStatement(solution);
+				BreedModel.add(statement);			 
+				exist = true;
+			}
+		}
+		
 		conn.close();
 		combinedRepo.close();
 		if(!exist)
@@ -181,29 +193,10 @@ public class BreedGraph {
 		GraphQueryResult  result = describeQuery.evaluate();
 		while(result.hasNext()){
 			org.openrdf.model.Statement solution = result.next();						
-			Resource r ;
-			Resource o;
-			Property p = fakeModel.createProperty(solution.getPredicate().stringValue());
-			
-				
-			if(solution.getSubject().toString().contains("_:")){
-				AnonId id = new AnonId(solution.getSubject().toString());
-				r = fakeModel.createResource(id);
-				fakeModel.add(r, p, solution.getObject().toString());
-			}
-			else{	
-				r = fakeModel.createResource(solution.getSubject().stringValue());
-				if(solution.getObject().toString().contains("_:")){
-					AnonId id = new AnonId(solution.getSubject().toString());
-					o = fakeModel.createResource(id);							 
-					fakeModel.add(r, p, o);
-				}
-				else {
-						fakeModel.add(r, p, solution.getObject().toString());	
-					}
-					
-				}
-			exist = true;				 
+			JenaSesameUtils convert = new JenaSesameUtils();
+			Statement statement = convert.asJenaStatement(solution);
+			fakeModel.add(statement);			 
+			exist = true;
 		 }
 	
 		if(exist){
