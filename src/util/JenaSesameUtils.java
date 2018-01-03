@@ -40,6 +40,7 @@ import com.hp.hpl.jena.rdf.model.StmtIterator;
  * 
  * @author Michael Grove 
  */ 
+@SuppressWarnings("deprecation")
 public class JenaSesameUtils { 
  
  /**

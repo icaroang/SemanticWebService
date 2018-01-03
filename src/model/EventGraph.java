@@ -1,77 +1,39 @@
 package model;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.StringReader;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
-import java.util.Vector;
 
 import javax.imageio.ImageIO;
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonReader;
-import javax.json.JsonString;
 import javax.json.JsonValue;
-import javax.json.stream.JsonParser;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.jena.atlas.json.JSON;
-import org.apache.jena.atlas.json.io.parser.JSONParser;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.openrdf.model.Value;
-import org.openrdf.model.ValueFactory;
 import org.openrdf.query.BindingSet;
 import org.openrdf.query.GraphQuery;
 import org.openrdf.query.GraphQueryResult;
-import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.QueryLanguage;
 import org.openrdf.query.TupleQuery;
 import org.openrdf.query.TupleQueryResult;
-import org.openrdf.repository.RepositoryConnection;
-import org.openrdf.repository.RepositoryException;
 
 import com.franz.agraph.jena.AGGraph;
 import com.franz.agraph.jena.AGGraphMaker;
 import com.franz.agraph.jena.AGModel;
-import com.franz.agraph.jena.AGQuery;
-import com.franz.agraph.jena.AGQueryExecutionFactory;
-import com.franz.agraph.jena.AGQueryFactory;
-import com.franz.agraph.repository.AGBooleanQuery;
 import com.franz.agraph.repository.AGCatalog;
 import com.franz.agraph.repository.AGRepository;
 import com.franz.agraph.repository.AGRepositoryConnection;
 import com.franz.agraph.repository.AGServer;
 import com.franz.agraph.repository.AGVirtualRepository;
-import com.hp.hpl.jena.datatypes.xsd.XSDDateTime;
-import com.hp.hpl.jena.graph.Node;
-import com.hp.hpl.jena.graph.NodeFactory;
-import com.hp.hpl.jena.query.Query;
-import com.hp.hpl.jena.query.QueryExecution;
-import com.hp.hpl.jena.query.QueryExecutionFactory;
-import com.hp.hpl.jena.query.QueryFactory;
-import com.hp.hpl.jena.query.QuerySolution;
-import com.hp.hpl.jena.query.ResultSet;
-import com.hp.hpl.jena.query.ResultSetFormatter;
-import com.hp.hpl.jena.rdf.model.AnonId;
 import com.hp.hpl.jena.rdf.model.Literal;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
@@ -80,10 +42,7 @@ import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.Statement;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
-import com.hp.hpl.jena.vocabulary.RDF;
 
-import javassist.bytecode.stackmap.TypeData;
-import jena.turtle;
 import util.JenaSesameUtils;
 
 public class EventGraph {
@@ -96,7 +55,6 @@ public class EventGraph {
 	private static AGVirtualRepository combinedRepo;
 	private static AGRepositoryConnection conn;
 	private static AGGraphMaker maker;
-	private static AGRepository repository;
 	private static String id = "";
 	
 	public static AGGraph ConnectDataRepository() throws Exception {			
@@ -166,8 +124,7 @@ public class EventGraph {
 			GraphQueryResult resultDescribe = describeQuery.evaluate();
 			while(resultDescribe.hasNext()){
 				org.openrdf.model.Statement solution = resultDescribe.next();
-				JenaSesameUtils convert = new JenaSesameUtils();
-				Statement statement = convert.asJenaStatement(solution);
+				Statement statement = JenaSesameUtils.asJenaStatement(solution);
 				EventModel.add(statement);
 			 }
 	   	
@@ -205,8 +162,7 @@ public class EventGraph {
 		GraphQueryResult  result = describeQuery.evaluate();
 		while(result.hasNext()){
 			org.openrdf.model.Statement solution = result.next();
-			JenaSesameUtils convert = new JenaSesameUtils();
-			Statement statement = convert.asJenaStatement(solution);
+			Statement statement = JenaSesameUtils.asJenaStatement(solution);
 			fakeModel.add(statement);			 
 			exist = true;
 		}
@@ -230,8 +186,8 @@ public class EventGraph {
 		AGGraph graph = ConnectDataRepository();						
 		AGModel model = new AGModel(graph);
 		
-		Iterator subjects = model.listSubjects();
-		Iterator json_values = json.entrySet().iterator();
+		Iterator<?> subjects = model.listSubjects();
+		Iterator<Entry<String, JsonValue>> json_values = json.entrySet().iterator();
 		
 		id = newId(json_values);
 		if (existId(subjects, id) || (id.equals(""))) {
@@ -242,16 +198,17 @@ public class EventGraph {
 		Property type = model.getProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
 		Resource resourceLocation =	model.createResource("http://purl.org/NET/c4dm/event.owl#Event");
 		model.add(resource, type, resourceLocation);
-		Iterator iterator = json.entrySet().iterator();			
+		Iterator<Entry<String, JsonValue>> iterator = json.entrySet().iterator();			
 		while (iterator.hasNext()) {
-			Entry<String, JsonString> entry= (Entry<String, JsonString>)iterator.next();
+			Entry<String, JsonValue> entry = iterator.next();
 			String key = entry.getKey().toString();
 			String value = entry.getValue().toString();
-			JsonString Jvalue = entry.getValue();
+			JsonValue Jvalue = entry.getValue();
 			
 			if(!value.equals("") && !key.equals("id")) {
 				if (key.equals("http://purl.org/NET/c4dm/event.owl#agent")){
-					JSONArray arrayAgent = new JSONArray("["+Jvalue.getString()+"]");
+					JSONArray arrayAgent = new JSONArray("["+Jvalue.toString()+"]");
+					
 					for (int i = 0; i < arrayAgent.length(); i++) {
 					    
 					    String agent = arrayAgent.getString(i);
@@ -276,7 +233,11 @@ public class EventGraph {
 				 						                           
 					model.add(resource, model.getProperty(entry.getKey()), node);
 				} else if (key.equals("http://purl.org/NET/c4dm/event.owl#product")){
-					JSONArray array = new JSONArray("["+Jvalue.getString()+"]");
+					String arrayString = Jvalue.toString();
+					arrayString = arrayString.substring(1, arrayString.length()-1);
+					arrayString = arrayString.replace("\\", "");
+					JSONArray array = new JSONArray("["+arrayString+"]");
+					
 					for (int i = 0; i < array.length(); i++) {
 					    JSONObject row = array.getJSONObject(i);
 					    String id_img = row.getString("id");
@@ -304,17 +265,19 @@ public class EventGraph {
 		Resource resource =	addModel.createResource(uri);
 		removeTriples(model, uri, "images"); // o primeiro argumento é o model, o segundo argumento são todos os sujeitos que serão removidos, e o terceiro argumento é qual predicado não será excluído
 							
-		Iterator iterator = json.entrySet().iterator();
+		Iterator<Entry<String, JsonValue>> iterator = json.entrySet().iterator();
 		while (iterator.hasNext()) {
-			Entry<String, JsonString> entry= (Entry<String, JsonString>)iterator.next();
+			Entry<String, JsonValue> entry = iterator.next();
 			String key = entry.getKey().toString();
 			String value = entry.getValue().toString();
-			JsonString Jvalue = entry.getValue();
+			JsonValue Jvalue = entry.getValue();
 			
 			
 			if(!value.equals("") && !key.equals("id")) {
 				if (key.equals("http://purl.org/NET/c4dm/event.owl#agent")){
-					JSONArray arrayAgent = new JSONArray("["+Jvalue.getString()+"]");
+					String arrayString = Jvalue.toString();
+					JSONArray arrayAgent = new JSONArray("["+arrayString+"]");
+					
 					for (int i = 0; i < arrayAgent.length(); i++) {
 					    
 					    String agent = arrayAgent.getString(i);
@@ -338,7 +301,11 @@ public class EventGraph {
 				 						                           
 					model.add(resource, model.getProperty(entry.getKey()), node);
 				} else if (key.equals("http://purl.org/NET/c4dm/event.owl#product")){
-					JSONArray array = new JSONArray("["+Jvalue.getString()+"]");
+					String arrayString = Jvalue.toString();
+					arrayString = arrayString.substring(1, arrayString.length()-1);
+					arrayString = arrayString.replace("\\", "");
+					JSONArray array = new JSONArray("["+arrayString+"]");
+					
 					String ids[] = new String[array.length()];
 					String Id = uri.toString().substring(48);
 					for (int i = 0; i < array.length(); i++) {
@@ -385,7 +352,6 @@ public class EventGraph {
 				}
 			}	
 		} catch (Exception e) {
-			// TODO: handle exception
 		}
 	}
 		
@@ -393,7 +359,6 @@ public class EventGraph {
 	public static boolean deleteEventGraph(String resourceURI) throws Exception{		
 		AGGraph graph = ConnectDataRepository();			
 		AGModel model = new AGModel(graph);
-		StmtIterator iterator = model.listStatements();	
 		boolean exist = false;
 		exist = removeTriples(model, resourceURI, "");
 		conn.close();
@@ -492,10 +457,7 @@ public class EventGraph {
 				}
 		}
 		String id_events = ResourceURI.toString().substring(48);
-		String id_image = ResourceImageURI.toString().substring(64);
 		String folder_path = "images/" + "events/" + id_events;
-		String image_path = "images/" + "events/" + id_events + "/" + id_image;
-		
 		try {
 			FileUtils.deleteDirectory(new File(folder_path));
 		} catch (IOException e) {
@@ -503,7 +465,7 @@ public class EventGraph {
 		}
 	}
 
-	private static Boolean existId(Iterator subjects, String id){
+	private static Boolean existId(Iterator<?> subjects, String id){
 		while(subjects.hasNext()){								
 			Resource r = (Resource) subjects.next();			
 			if(r.toString().contains("http://localhost:8080/SemanticWebService/events/")){/*Verify if it's the ontology statement*/
@@ -516,11 +478,11 @@ public class EventGraph {
 		return false;
 	}
 	
-	private static String newId (Iterator json_values) {
+	private static String newId (Iterator<Entry<String, JsonValue>> json_values) {
 		String newId = "";
 		while(json_values.hasNext())
 		{
-			Entry<String, JsonValue> entry = (Entry<String, JsonValue>)json_values.next();
+			Entry<String, JsonValue> entry = json_values.next();
 			if (entry.getKey().toString().equals("id")){
 				String id = entry.getValue().toString();
 				newId = id.substring(1,id.length()-1);
